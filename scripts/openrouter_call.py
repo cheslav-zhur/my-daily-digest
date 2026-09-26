@@ -32,6 +32,7 @@ from digest.content.news.fetch import (
     news_model,
 )
 from digest.content.news.parse import payload_to_topic_block
+from digest.content.news.period import NEWS_PERIODS, NewsPeriod, coerce_period
 from digest.content.news.topics import TOPIC_BY_ID, NewsTopic
 from digest.content.openrouter import chat_completion, openrouter_api_key
 from digest.observability import flush_observability, init_observability, langfuse_enabled
@@ -64,12 +65,18 @@ def _with_langfuse_trace(
     return fn()
 
 
-def _run_news_topic(topic_key: str, report_date: str, *, raw: bool) -> int:
+def _run_news_topic(
+    topic_key: str,
+    report_date: str,
+    *,
+    period: NewsPeriod,
+    raw: bool,
+) -> int:
     topic = TOPIC_BY_KEY[topic_key]
     label = topic.label.rstrip(":")
 
     def _work() -> dict[str, Any] | None:
-        return _fetch_topic_payload(topic, report_date)
+        return _fetch_topic_payload(topic, report_date, period=period)
 
     payload = _with_langfuse_trace(
         trace_name="openrouter-news",
@@ -79,9 +86,10 @@ def _run_news_topic(topic_key: str, report_date: str, *, raw: bool) -> int:
             "topic": label,
             "topic_id": topic.id,
             "group_id": topic.group_id,
+            "period": period,
             "model": news_model(),
         },
-        tags=["openrouter-news", topic.group_id, label, "script"],
+        tags=["openrouter-news", topic.group_id, label, period, "script"],
         fn=_work,
     )
     if payload is None:
@@ -92,7 +100,7 @@ def _run_news_topic(topic_key: str, report_date: str, *, raw: bool) -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
 
-    block = payload_to_topic_block(topic, payload)
+    block = payload_to_topic_block(topic, payload, period=period)
     if not block:
         print("Failed to format topic block.", file=sys.stderr)
         return 1
@@ -127,7 +135,7 @@ def _run_raw_prompt(prompt: str, model: str, *, raw: bool) -> int:
         return chat_completion(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            extra=_chat_extra(),
+            extra=_chat_extra("day"),
             label="script",
         )
 
@@ -161,6 +169,12 @@ def main() -> int:
     parser.add_argument("--prompt", help="Custom user prompt (overrides --topic)")
     parser.add_argument("--model", help=f"Model id (default: {news_model()})")
     parser.add_argument("--date", help="Report date YYYY-MM-DD (default: today Da Nang)")
+    parser.add_argument(
+        "--period",
+        choices=list(NEWS_PERIODS),
+        default="day",
+        help="News search window (default: day)",
+    )
     parser.add_argument("--raw", action="store_true", help="Print full API JSON response")
     args = parser.parse_args()
 
@@ -183,7 +197,12 @@ def main() -> int:
             return _run_raw_prompt(args.prompt, model, raw=args.raw)
         if args.topic == "all":
             return _run_news_all(report_date)
-        return _run_news_topic(args.topic, report_date, raw=args.raw)
+        return _run_news_topic(
+            args.topic,
+            report_date,
+            period=coerce_period(args.period),
+            raw=args.raw,
+        )
     finally:
         flush_observability()
 

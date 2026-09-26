@@ -17,6 +17,7 @@ from digest.content.report import (
     build_news_groups_html_list,
     build_news_unavailable_html,
     build_openrouter_cost_html,
+    build_single_topic_news_html,
 )
 
 
@@ -181,3 +182,45 @@ def test_build_news_delivery_messages_appends_cost_after_unavailable() -> None:
     assert len(messages) == 2
     assert "Новости недоступны" in messages[0]
     assert "$0.0100" in messages[1]
+
+
+# --- single-topic HTML -------------------------------------------------------
+
+
+def test_build_single_topic_news_html_includes_label_and_link() -> None:
+    html = build_single_topic_news_html(
+        "2026-06-13",
+        _topic(),
+        "ИИ:\nСаммари.\n\n1. Новость — https://x.com/a",
+        period="day",
+    )
+
+    assert "ИИ" in html
+    assert '<a href="https://x.com/a">подробнее</a>' in html
+    assert "Технологии" not in html
+    assert "Мировое" not in html
+    assert "Политика" not in html
+
+
+def test_build_single_topic_news_html_appends_cost() -> None:
+    html = build_single_topic_news_html(
+        "2026-06-13",
+        _topic(),
+        "ИИ:\nСаммари.",
+        period="week",
+        cost=0.0123,
+    )
+    assert "$0.0123" in html
+
+
+def test_build_single_topic_news_html_failure_is_topic_scoped() -> None:
+    html = build_single_topic_news_html(
+        "2026-06-13",
+        _topic(),
+        None,
+        period="month",
+        failure_reason="timeout",
+    )
+    assert "ИИ" in html
+    assert "timeout" in html
+    assert "недоступ" in html.lower() or "не загрузилось" in html.lower()
