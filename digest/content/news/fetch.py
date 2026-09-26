@@ -278,24 +278,6 @@ def group_topic_blocks(blocks: dict[str, TopicBlock]) -> list[GroupNews]:
     return group_topic_results(blocks, {})
 
 
-def fetch_grouped_news(report_date: str) -> GroupedNewsResult:
-    """Fetch all topics; total failure → unavailable_reason, else groups (incl. dead)."""
-    blocks, failures, total_cost = fetch_all_topic_results(report_date)
-    if not blocks:
-        reasons = [f.reason for f in failures.values()]
-        reason = _pick_reason(reasons) if reasons else "error"
-        logging.warning(
-            "OpenRouter news: all topics failed for %s (%s)", report_date, reason
-        )
-        return GroupedNewsResult(
-            groups=[], unavailable_reason=reason, total_cost=total_cost
-        )
-    return GroupedNewsResult(
-        groups=group_topic_results(blocks, failures),
-        total_cost=total_cost,
-    )
-
-
 def _ordered_block_texts(blocks: dict[str, TopicBlock]) -> list[str]:
     texts: list[str] = []
     for group in NEWS_GROUPS:
@@ -307,7 +289,7 @@ def _ordered_block_texts(blocks: dict[str, TopicBlock]) -> list[str]:
 
 
 def fetch_news_body(report_date: str) -> str | None:
-    """Fetch Russian news summary as plain text for report._format_news_body."""
+    """Fetch Russian news summary as plain text (dev/script; not the bot hot path)."""
     blocks = fetch_all_topic_blocks(report_date)
     texts = _ordered_block_texts(blocks)
     if not texts:

@@ -3,7 +3,6 @@ from digest.content.news.fetch import (
     GroupNews,
     TopicFailure,
     TopicNewsResult,
-    fetch_grouped_news,
     fetch_news_body,
     fetch_topic_news,
 )
@@ -17,7 +16,6 @@ __all__ = (
     "TopicFailure",
     "TopicNewsResult",
     "coerce_period",
-    "fetch_grouped_news",
     "fetch_news_body",
     "fetch_topic_news",
 )
