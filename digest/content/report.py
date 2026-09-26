@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import random
 
 from digest.config import format_report_date_ru
@@ -10,6 +11,7 @@ from digest.content.telegram_html import ensure_html_safe
 from digest.content.weather import format_weather_body
 
 _NEWS_ITEM_SEP = " — "
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 _MOTIVATION_EN: tuple[str, ...] = (
     "The only way to do great work is to love what you do.",
@@ -69,6 +71,11 @@ def _format_rates_body(prices_text: str | None, forex_text: str | None) -> str:
     return "\n".join(lines)
 
 
+def _plain_fragment(text: str) -> str:
+    """Drop any HTML tags from model-provided fragments before we wrap them."""
+    return _HTML_TAG_RE.sub("", text)
+
+
 def _format_news_item_line(line: str) -> str:
     line = line.strip()
     if not line:
@@ -81,10 +88,10 @@ def _format_news_item_line(line: str) -> str:
             more = f'(<a href="{url}">подробнее</a>)'
             if ". " in left and left[0].isdigit():
                 number, title = left.split(". ", 1)
-                return f"{number}. {title} {more}"
-            return f"{left} {more}"
+                return f"{number}. {_plain_fragment(title)} {more}"
+            return f"{_plain_fragment(left)} {more}"
 
-    return line
+    return _plain_fragment(line)
 
 
 def _is_preformatted_news_html(text: str) -> bool:

@@ -66,6 +66,8 @@ def test_brief_entry_keyboard_opens_same_hub() -> None:
 def test_decode_rejects_unknown_payload() -> None:
     assert decode_callback("other:stuff") is None
     assert decode_callback("nh:p:ai:year") is None
+    assert decode_callback("nh:t:not-a-topic") is None
+    assert decode_callback("nh:p:not-a-topic:day") is None
 
 
 def test_unauthorized_user_is_rejected(monkeypatch) -> None:

@@ -27,8 +27,8 @@ def test_build_topic_prompt_week_mentions_week_window(make_topic) -> None:
     prompt = build_topic_prompt(make_topic(), "2026-06-13", period="week")
     lower = prompt.lower()
 
-    assert "last week" in lower or "past week" in lower
-    assert "last 24 hours" not in lower
+    assert "time window: last week" in lower
+    assert "prefer sources and events inside the last week" in lower
 
 
 def test_build_topic_prompt_month_mentions_month_window(make_topic) -> None:

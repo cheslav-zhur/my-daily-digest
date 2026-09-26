@@ -5,7 +5,7 @@ import logging
 import os
 from datetime import datetime
 
-from telegram import BotCommand, Message, Update
+from telegram import BotCommand, InlineKeyboardMarkup, Message, Update
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
@@ -18,6 +18,7 @@ from telegram.ext import (
 
 from digest.config import DA_NANG_TZ
 from digest.content.news.fetch import fetch_topic_news
+from digest.content.news.topics import TOPIC_BY_ID
 from digest.content.report import build_single_topic_news_html
 from digest.content.service import DigestSection, build_digest_delivery
 from digest.content.telegram_html import html_to_plain_text
@@ -29,7 +30,6 @@ from digest.telegram.news_hub import (
     period_keyboard,
     topic_keyboard,
 )
-from digest.content.news.topics import TOPIC_BY_ID
 
 HELP_TEXT = (
     "<b>Daily Digest Bot</b>\n\n"
@@ -210,8 +210,11 @@ async def on_news_hub_callback(
         return
 
     if action == "open":
-        await edit_html_message(
-            message, HUB_INTRO_HTML, reply_markup=topic_keyboard()
+        # Keep the brief intact — open the hub as a follow-up message.
+        await message.reply_html(
+            HUB_INTRO_HTML,
+            reply_markup=topic_keyboard(),
+            disable_web_page_preview=True,
         )
         return
 
@@ -224,7 +227,10 @@ async def on_news_hub_callback(
         return
 
     if action == "period" and topic_id is not None and period is not None:
-        await message.edit_text(LOADING_TEXT)
+        await message.edit_text(
+            LOADING_TEXT,
+            reply_markup=InlineKeyboardMarkup([]),
+        )
         report_date = datetime.now(DA_NANG_TZ).strftime("%Y-%m-%d")
         try:
             result = await asyncio.to_thread(

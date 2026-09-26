@@ -17,7 +17,7 @@ def build_topic_prompt(
     window = period_window_en(period)
     scope = period_summary_scope_en(period)
     return (
-        f"Date: {report_date}. Find: {topic.search_brief}\n\n"
+        f"Date: {report_date}. Time window: {window}. Find: {topic.search_brief}\n\n"
         "Search the web in English (international sources: US, EU, global tech media). "
         "Write the answer in Russian.\n\n"
         "Return ONLY plain text, no HTML and no markdown.\n"
@@ -31,6 +31,8 @@ def build_topic_prompt(
         "- Links only in LINK lines, never in SUMMARY\n"
         "- URLs only from sources found in search\n"
         "- No intro phrases or text outside this format\n"
+        f"- Prefer sources and events inside the {window} even if the Find brief "
+        "mentions a different window\n"
         f"- If search found no relevant news for the {window}, respond with "
         f"exactly one line: SUMMARY: {NO_NEWS_MARKER} (no LINK lines, no explanations)"
     )

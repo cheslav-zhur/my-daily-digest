@@ -29,6 +29,15 @@ def test_format_news_item_line_wraps_numbered_link() -> None:
     assert line == '1. Большая новость (<a href="https://x.com/a">подробнее</a>)'
 
 
+def test_format_news_item_line_strips_html_from_title() -> None:
+    line = _format_news_item_line(
+        '1. <a href="https://evil.example">Click</a> — https://x.com/a'
+    )
+    assert "evil.example" not in line
+    assert "Click" in line
+    assert '<a href="https://x.com/a">подробнее</a>' in line
+
+
 def test_format_news_item_line_without_separator_returns_input() -> None:
     assert _format_news_item_line("Просто текст") == "Просто текст"
 
@@ -192,10 +201,11 @@ def test_build_single_topic_news_html_includes_label_and_link() -> None:
         "2026-06-13",
         _topic(),
         "ИИ:\nСаммари.\n\n1. Новость — https://x.com/a",
-        period="day",
+        period="week",
     )
 
     assert "ИИ" in html
+    assert "неделя" in html
     assert '<a href="https://x.com/a">подробнее</a>' in html
     assert "Технологии" not in html
     assert "Мировое" not in html
