@@ -67,7 +67,7 @@ Without `WEBHOOK_URL` / `WEBHOOK_SECRET`, the bot runs in **polling** mode.
 
 ```bash
 python scripts/openrouter_call.py --topic ai      # one topic
-python scripts/openrouter_call.py --topic all     # all topics (9)
+python scripts/openrouter_call.py --topic all     # all topics (11)
 python scripts/openrouter_call.py --topic ai --raw  # raw API JSON
 ```
 

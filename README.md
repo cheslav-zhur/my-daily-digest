@@ -1,6 +1,6 @@
 # Daily Digest Bot
 
-Personal morning briefing in Telegram: weather, crypto/forex rates, and news (9 topics across tech, world, politics).
+Personal morning briefing in Telegram: weather, crypto/forex rates, and news (11 topics across tech, world, politics).
 
 Stateless — no database, each run is independent.
 
@@ -8,7 +8,7 @@ Stateless — no database, each run is independent.
 
 - **Weather** — Da Nang (wttr.in)
 - **Rates** — BTC, ETH (CoinGecko), VND/USD (forex API)
-- **News** — 9 topics in 3 groups (tech, world, politics) via [OpenRouter](https://openrouter.ai) (`perplexity/sonar`): Russian summary + links; search in English
+- **News** — 11 topics in 3 groups (tech, world, politics) via [OpenRouter](https://openrouter.ai) (`perplexity/sonar`): Russian summary + links; search in English
 
 Full digest HTML is assembled in code (`report.py`) — no LLM for weather/rates layout.
 

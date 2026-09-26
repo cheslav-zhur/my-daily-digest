@@ -89,6 +89,28 @@ NEWS_TOPICS: tuple[NewsTopic, ...] = (
         ),
     ),
     NewsTopic(
+        id="singapore",
+        group_id="world",
+        label="Сингапур:",
+        search_brief=(
+            "главные новости Singapore AI/IT/GovTech за последние 24 часа: "
+            "AI strategy, GovTech, digital economy, tech hiring, Employment Pass, "
+            "startup ecosystem, MAS fintech; Singapore and international sources; "
+            "без туристских гайдов"
+        ),
+    ),
+    NewsTopic(
+        id="vietnam",
+        group_id="world",
+        label="Вьетнам:",
+        search_brief=(
+            "главные новости Vietnam интересные для экспатов за последние 24 часа: "
+            "визы и иммиграция, налоги, законы и регуляции, праздники и выходные, "
+            "стоимость жизни, недвижимость, Da Nang/HCMC/Hanoi; "
+            "без туристских гайдов и списков ресторанов"
+        ),
+    ),
+    NewsTopic(
         id="war_ua",
         group_id="politics",
         label="Война:",
@@ -119,7 +141,7 @@ NEWS_GROUPS: tuple[NewsGroup, ...] = (
         id="world",
         title="Мировое",
         emoji="🌍",
-        topic_ids=("economy", "geopolitics", "dubai"),
+        topic_ids=("economy", "geopolitics", "dubai", "singapore", "vietnam"),
     ),
     NewsGroup(
         id="politics",

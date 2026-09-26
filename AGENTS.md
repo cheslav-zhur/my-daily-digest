@@ -36,7 +36,7 @@ digest/
     report.py            # Telegram HTML (brief, single-topic news)
     openrouter.py        # OpenRouter chat/completions + retry + Langfuse
     news/
-      topics.py          # 9 тем, 3 группы (tech / world / politics)
+      topics.py          # 11 тем, 3 группы (tech / world / politics)
       period.py          # day / week / month
       prompt.py          # промпт SUMMARY + LINK (поиск EN, ответ RU)
       parse.py           # парсинг, citations whitelist, format block
@@ -72,12 +72,12 @@ railway.toml
 
 ## Новости (hot path)
 
-**9 тем, 3 группы** (каталог для хаба; по запросу берётся одна тема):
+**11 тем, 3 группы** (каталог для хаба; по запросу берётся одна тема):
 
 | Группа | Темы |
 |--------|------|
 | Технологии | ИИ, Крипта, Технологии, Робототехника |
-| Мировое | Экономика, Геополитика, Дубай |
+| Мировое | Экономика, Геополитика, Дубай, Сингапур, Вьетнам |
 | Политика | Война (RU–UA), Беларусь |
 
 ```
