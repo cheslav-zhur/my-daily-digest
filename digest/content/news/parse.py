@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from digest.content.news.topics import NewsTopic
+from digest.content.news.period import NewsPeriod, no_news_text
 
 _URL_IN_TEXT_RE = re.compile(r"https?://\S+")
 _CITATION_MARKER_RE = re.compile(r"\[\d+\]")
@@ -15,6 +16,7 @@ _NEWS_ITEM_SEP = " — "
 
 # Sentinel the model returns when search found nothing for the topic (see prompt.py).
 NO_NEWS_MARKER = "NO_NEWS"
+# Default (day) empty copy; prefer no_news_text(period) for period-aware paths.
 NO_NEWS_TEXT = "За 24 часа новостей нет."
 
 
@@ -210,7 +212,12 @@ def format_topic_block(topic: NewsTopic, parsed: TopicParseResult) -> str:
     return "\n".join(lines)
 
 
-def payload_to_topic_block(topic: NewsTopic, payload: dict[str, Any]) -> str | None:
+def payload_to_topic_block(
+    topic: NewsTopic,
+    payload: dict[str, Any],
+    *,
+    period: NewsPeriod = "day",
+) -> str | None:
     choices = payload.get("choices") or []
     if not choices:
         return None
@@ -222,7 +229,7 @@ def payload_to_topic_block(topic: NewsTopic, payload: dict[str, Any]) -> str | N
 
     if parsed.summary.upper().startswith(NO_NEWS_MARKER):
         return format_topic_block(
-            topic, TopicParseResult(summary=NO_NEWS_TEXT, links=[])
+            topic, TopicParseResult(summary=no_news_text(period), links=[])
         )
 
     allowed_urls = extract_citation_urls(payload)

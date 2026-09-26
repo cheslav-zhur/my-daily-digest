@@ -230,3 +230,12 @@ def test_payload_to_topic_block_no_news_marker_tolerates_trailing_punctuation(
 
     assert block is not None
     assert NO_NEWS_TEXT in block
+
+
+def test_payload_to_topic_block_no_news_uses_period_copy(make_topic) -> None:
+    payload = {"choices": [{"message": {"content": "SUMMARY: NO_NEWS"}}]}
+    block = payload_to_topic_block(make_topic(), payload, period="week")
+
+    assert block is not None
+    assert "неделю" in block.lower()
+    assert NO_NEWS_TEXT not in block

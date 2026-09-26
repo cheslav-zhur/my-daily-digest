@@ -11,10 +11,8 @@ from digest.content.fetchers import (
     fetch_forex_vnd_per_usd,
     fetch_weather,
 )
-from digest.content.news import fetch_grouped_news
 from digest.content.report import (
     build_brief_html,
-    build_news_delivery_messages,
     build_rates_html,
     build_weather_html,
 )
@@ -24,7 +22,6 @@ class DigestSection(str, Enum):
     BRIEF = "brief"
     WEATHER = "weather"
     RATES = "rates"
-    NEWS = "news"
 
 
 @dataclass
@@ -55,19 +52,11 @@ def _build_brief_delivery(report_date: str) -> DigestDelivery:
     )
 
 
-def _build_news_delivery(report_date: str) -> DigestDelivery:
-    result = fetch_grouped_news(report_date)
-    return DigestDelivery(messages=build_news_delivery_messages(report_date, result))
-
-
 def build_digest_delivery(section: DigestSection) -> DigestDelivery:
     report_date = _report_date()
 
     if section == DigestSection.BRIEF:
         return _build_brief_delivery(report_date)
-
-    if section == DigestSection.NEWS:
-        return _build_news_delivery(report_date)
 
     if section == DigestSection.WEATHER:
         return DigestDelivery(

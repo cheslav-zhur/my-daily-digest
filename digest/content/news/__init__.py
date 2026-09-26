@@ -2,14 +2,20 @@ from digest.content.news.fetch import (
     GroupedNewsResult,
     GroupNews,
     TopicFailure,
-    fetch_grouped_news,
+    TopicNewsResult,
     fetch_news_body,
+    fetch_topic_news,
 )
+from digest.content.news.period import NEWS_PERIODS, NewsPeriod, coerce_period
 
 __all__ = (
     "GroupedNewsResult",
     "GroupNews",
+    "NEWS_PERIODS",
+    "NewsPeriod",
     "TopicFailure",
-    "fetch_grouped_news",
+    "TopicNewsResult",
+    "coerce_period",
     "fetch_news_body",
+    "fetch_topic_news",
 )

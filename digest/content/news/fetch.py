@@ -10,8 +10,15 @@ from typing import Any
 from langfuse import propagate_attributes
 
 from digest.content.news.parse import payload_to_topic_block
+from digest.content.news.period import NewsPeriod
 from digest.content.news.prompt import build_topic_prompt
-from digest.content.news.topics import NEWS_GROUPS, NEWS_TOPICS, NewsGroup, NewsTopic
+from digest.content.news.topics import (
+    NEWS_GROUPS,
+    NEWS_TOPICS,
+    TOPIC_BY_ID,
+    NewsGroup,
+    NewsTopic,
+)
 from digest.content.openrouter import (
     ChatCompletionOutcome,
     chat_completion,
@@ -53,13 +60,33 @@ class GroupedNewsResult:
     total_cost: float = 0.0
 
 
+@dataclass
+class TopicNewsResult:
+    """One on-demand topic fetch: success block, empty-but-ok text, or failure."""
+
+    topic: NewsTopic
+    period: NewsPeriod
+    text: str | None = None
+    failure_reason: str | None = None
+    cost: float = 0.0
+
+
 def news_model() -> str:
     return os.environ.get("OPENROUTER_NEWS_MODEL", DEFAULT_NEWS_MODEL).strip() or DEFAULT_NEWS_MODEL
 
 
-def _chat_extra() -> dict[str, Any]:
+def resolve_topic(topic: NewsTopic | str) -> NewsTopic:
+    if isinstance(topic, NewsTopic):
+        return topic
+    resolved = TOPIC_BY_ID.get(topic)
+    if resolved is None:
+        raise KeyError(f"unknown news topic id: {topic!r}")
+    return resolved
+
+
+def _chat_extra(period: NewsPeriod = "day") -> dict[str, Any]:
     return {
-        "search_recency_filter": "day",
+        "search_recency_filter": period,
         "web_search_options": {"search_context_size": "low"},
         "usage": {"include": True},
     }
@@ -72,15 +99,19 @@ def _pick_reason(reasons: list[str]) -> str:
     return Counter(reasons).most_common(1)[0][0]
 
 
-def _fetch_topic_outcome(topic: NewsTopic, report_date: str) -> ChatCompletionOutcome:
-    prompt = build_topic_prompt(topic, report_date)
+def _fetch_topic_outcome(
+    topic: NewsTopic,
+    report_date: str,
+    period: NewsPeriod = "day",
+) -> ChatCompletionOutcome:
+    prompt = build_topic_prompt(topic, report_date, period=period)
     label = topic.label.rstrip(":")
 
     def _call() -> ChatCompletionOutcome:
         return chat_completion(
             model=news_model(),
             messages=[{"role": "user", "content": prompt}],
-            extra=_chat_extra(),
+            extra=_chat_extra(period),
             label=label,
         )
 
@@ -93,26 +124,33 @@ def _fetch_topic_outcome(topic: NewsTopic, report_date: str) -> ChatCompletionOu
                 "topic": label,
                 "topic_id": topic.id,
                 "group_id": topic.group_id,
+                "period": period,
                 "model": news_model(),
             },
-            tags=["openrouter-news", topic.group_id, label],
+            tags=["openrouter-news", topic.group_id, label, period],
         ):
             return _call()
     return _call()
 
 
 # Back-compat alias for scripts that import the private helper name.
-def _fetch_topic_payload(topic: NewsTopic, report_date: str) -> dict[str, Any] | None:
-    return _fetch_topic_outcome(topic, report_date).payload
+def _fetch_topic_payload(
+    topic: NewsTopic,
+    report_date: str,
+    period: NewsPeriod = "day",
+) -> dict[str, Any] | None:
+    return _fetch_topic_outcome(topic, report_date, period=period).payload
 
 
 def _fetch_topic_block(
-    topic: NewsTopic, report_date: str
+    topic: NewsTopic,
+    report_date: str,
+    period: NewsPeriod = "day",
 ) -> tuple[str | None, float, str | None]:
     """Return (block_text, cost, failure_reason). Exactly one of text/reason is set."""
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_fetch_topic_outcome, topic, report_date)
+            future = executor.submit(_fetch_topic_outcome, topic, report_date, period)
             outcome = future.result(timeout=TOPIC_TIMEOUT_S)
     except FuturesTimeoutError:
         logging.warning(
@@ -128,11 +166,44 @@ def _fetch_topic_block(
 
     payload = outcome.payload
     cost = usage_cost(payload) or 0.0
-    block = payload_to_topic_block(topic, payload)
+    block = payload_to_topic_block(topic, payload, period=period)
     if block is None:
         logging.warning("OpenRouter %s: failed to parse SUMMARY", topic.label.rstrip(":"))
         return None, cost, "parse"
     return block, cost, None
+
+
+def fetch_topic_news(
+    topic: NewsTopic | str,
+    report_date: str,
+    period: NewsPeriod = "day",
+) -> TopicNewsResult:
+    """Fetch a single topic for the given period (on-demand hub path)."""
+    resolved = resolve_topic(topic)
+    if not openrouter_api_key():
+        logging.warning("OPENROUTER_API_KEY not set, news unavailable")
+        return TopicNewsResult(
+            topic=resolved,
+            period=period,
+            failure_reason="no key",
+        )
+
+    text, cost, reason = _fetch_topic_block(resolved, report_date, period=period)
+    if text is None:
+        return TopicNewsResult(
+            topic=resolved,
+            period=period,
+            failure_reason=reason or "error",
+            cost=cost,
+        )
+    if cost:
+        logging.info(
+            "OpenRouter news topic %s (%s) cost: $%.6f",
+            resolved.id,
+            period,
+            cost,
+        )
+    return TopicNewsResult(topic=resolved, period=period, text=text, cost=cost)
 
 
 def fetch_all_topic_results(
@@ -207,24 +278,6 @@ def group_topic_blocks(blocks: dict[str, TopicBlock]) -> list[GroupNews]:
     return group_topic_results(blocks, {})
 
 
-def fetch_grouped_news(report_date: str) -> GroupedNewsResult:
-    """Fetch all topics; total failure → unavailable_reason, else groups (incl. dead)."""
-    blocks, failures, total_cost = fetch_all_topic_results(report_date)
-    if not blocks:
-        reasons = [f.reason for f in failures.values()]
-        reason = _pick_reason(reasons) if reasons else "error"
-        logging.warning(
-            "OpenRouter news: all topics failed for %s (%s)", report_date, reason
-        )
-        return GroupedNewsResult(
-            groups=[], unavailable_reason=reason, total_cost=total_cost
-        )
-    return GroupedNewsResult(
-        groups=group_topic_results(blocks, failures),
-        total_cost=total_cost,
-    )
-
-
 def _ordered_block_texts(blocks: dict[str, TopicBlock]) -> list[str]:
     texts: list[str] = []
     for group in NEWS_GROUPS:
@@ -236,7 +289,7 @@ def _ordered_block_texts(blocks: dict[str, TopicBlock]) -> list[str]:
 
 
 def fetch_news_body(report_date: str) -> str | None:
-    """Fetch Russian news summary as plain text for report._format_news_body."""
+    """Fetch Russian news summary as plain text (dev/script; not the bot hot path)."""
     blocks = fetch_all_topic_blocks(report_date)
     texts = _ordered_block_texts(blocks)
     if not texts:

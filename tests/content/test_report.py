@@ -17,6 +17,7 @@ from digest.content.report import (
     build_news_groups_html_list,
     build_news_unavailable_html,
     build_openrouter_cost_html,
+    build_single_topic_news_html,
 )
 
 
@@ -26,6 +27,15 @@ from digest.content.report import (
 def test_format_news_item_line_wraps_numbered_link() -> None:
     line = _format_news_item_line("1. Большая новость — https://x.com/a")
     assert line == '1. Большая новость (<a href="https://x.com/a">подробнее</a>)'
+
+
+def test_format_news_item_line_strips_html_from_title() -> None:
+    line = _format_news_item_line(
+        '1. <a href="https://evil.example">Click</a> — https://x.com/a'
+    )
+    assert "evil.example" not in line
+    assert "Click" in line
+    assert '<a href="https://x.com/a">подробнее</a>' in line
 
 
 def test_format_news_item_line_without_separator_returns_input() -> None:
@@ -181,3 +191,46 @@ def test_build_news_delivery_messages_appends_cost_after_unavailable() -> None:
     assert len(messages) == 2
     assert "Новости недоступны" in messages[0]
     assert "$0.0100" in messages[1]
+
+
+# --- single-topic HTML -------------------------------------------------------
+
+
+def test_build_single_topic_news_html_includes_label_and_link() -> None:
+    html = build_single_topic_news_html(
+        "2026-06-13",
+        _topic(),
+        "ИИ:\nСаммари.\n\n1. Новость — https://x.com/a",
+        period="week",
+    )
+
+    assert "ИИ" in html
+    assert "неделя" in html
+    assert '<a href="https://x.com/a">подробнее</a>' in html
+    assert "Технологии" not in html
+    assert "Мировое" not in html
+    assert "Политика" not in html
+
+
+def test_build_single_topic_news_html_appends_cost() -> None:
+    html = build_single_topic_news_html(
+        "2026-06-13",
+        _topic(),
+        "ИИ:\nСаммари.",
+        period="week",
+        cost=0.0123,
+    )
+    assert "$0.0123" in html
+
+
+def test_build_single_topic_news_html_failure_is_topic_scoped() -> None:
+    html = build_single_topic_news_html(
+        "2026-06-13",
+        _topic(),
+        None,
+        period="month",
+        failure_reason="timeout",
+    )
+    assert "ИИ" in html
+    assert "timeout" in html
+    assert "недоступ" in html.lower() or "не загрузилось" in html.lower()

@@ -8,7 +8,9 @@ GitHub Actions **2 раза в день** (07:00 и 18:00 Da Nang, UTC+7) дер
 
 - Погода в Da Nang
 - Курсы: BTC, ETH, VND/USD
-- Новости (9 тем в 3 группах, отдельный LLM-запрос на тему) — только утром, сразу вслед за брифом; вечерний прогон шлёт только бриф
+- Мотивация
+
+Новости **не** уходят по cron: только по запросу через хаб «Новости» (кнопка под брифом или `/news`) — тема → период → один LLM-запрос.
 
 **Стек:** Python 3.11+, GitHub Actions, Railway (webhook + Serverless), OpenRouter (`perplexity/sonar`), Langfuse (опционально), Telegram Bot API, wttr.in, CoinGecko.
 
@@ -23,24 +25,25 @@ GitHub Actions **2 раза в день** (07:00 и 18:00 Da Nang, UTC+7) дер
 ## Структура
 
 ```
-main.py                  # локально: дайджест → Telegram (как cron)
+main.py                  # локально: бриф → Telegram (как cron)
 digest/scheduled.py      # deliver_scheduled_digest() — cron + main.py
 bot.py                   # entry point → digest.telegram.bot.run_bot()
 digest/
   config.py              # logging, timezone, load_local_env
   observability.py       # Langfuse init / flush
   content/
-    service.py           # build_digest_delivery() — multi-message
-    report.py            # Telegram HTML (brief, группы новостей)
+    service.py           # build_digest_delivery() — brief / weather / rates
+    report.py            # Telegram HTML (brief, single-topic news)
     openrouter.py        # OpenRouter chat/completions + retry + Langfuse
     news/
       topics.py          # 9 тем, 3 группы (tech / world / politics)
+      period.py          # day / week / month
       prompt.py          # промпт SUMMARY + LINK (поиск EN, ответ RU)
       parse.py           # парсинг, citations whitelist, format block
-      fetch.py           # fetch_grouped_news() — 9 параллельных запросов
+      fetch.py           # fetch_topic_news() — один топик + период
     llm.py               # Gemini (не в hot path, оставлен на будущее)
     fetchers/            # wttr.in, CoinGecko, forex, news.py (RSS — не в hot path)
-  telegram/              # бот: команды, webhook, доставка
+  telegram/              # бот: команды, news hub, webhook, доставка
 scripts/
   openrouter_call.py     # dev: вызов OpenRouter + Langfuse
 requirements.txt
@@ -62,14 +65,14 @@ railway.toml
 
 | Режим | Entry point | Где запускать |
 |-------|-------------|---------------|
-| Утро: бриф + новости; вечер: бриф (`?news=0`) | `POST /cron/digest` | GitHub Actions → Railway |
+| Утро и вечер: только бриф (+ кнопка «Новости») | `POST /cron/digest` | GitHub Actions → Railway |
 | Команды `/brief`, `/news`, … | `python bot.py` | Railway (webhook) или локально (polling) |
 
 **Режим бота:** если задан `WEBHOOK_URL` или `RAILWAY_PUBLIC_DOMAIN` + `WEBHOOK_SECRET` → webhook; иначе polling.
 
 ## Новости (hot path)
 
-**9 тем, 3 группы:**
+**9 тем, 3 группы** (каталог для хаба; по запросу берётся одна тема):
 
 | Группа | Темы |
 |--------|------|
@@ -78,24 +81,18 @@ railway.toml
 | Политика | Война (RU–UA), Беларусь |
 
 ```
-fetch_grouped_news()
-  → 9× OpenRouter (perplexity/sonar, parallel, 30s timeout)
-  → модель: SUMMARY (RU) + LINK (url | title), до 4 ссылок
-  → parse: annotations/citations whitelist, format plain block
-  → group by NEWS_GROUPS → report.build_news_groups_html_list()
+/news или кнопка «Новости»
+  → topic keyboard → period (day/week/month)
+  → fetch_topic_news(topic, date, period)
+  → 1× OpenRouter (perplexity/sonar, 30s timeout, search_recency_filter)
+  → parse + build_single_topic_news_html → сообщение + снова topic keyboard
 ```
 
 ## Доставка в Telegram
 
-`/brief` — **1 сообщение**: дата, погода, курсы, мотивация (без новостей, LLM не вызывается).
+Cron / `/brief` — **1 сообщение**: дата, погода, курсы, мотивация; на cron-брифе — inline-кнопка «Новости» (LLM новостей не вызывается).
 
-Новости — **до 3 сообщений**:
-
-1. Технологии (4 темы)
-2. Мировое (3 темы)
-3. Политика (2 темы)
-
-Утренний cron шлёт бриф и сразу за ним новости; вечерний — только бриф (`?news=0`). `/news` шлёт только новости. Пустая группа (все темы упали) — сообщение не отправляется.
+`/news` — открывает хаб тем (без fetch). После выбора периода — **1 сообщение** по одной теме; пустой/упавший запрос — понятный ответ только по этой теме.
 
 RSS (`fetchers/news.py`) и Gemini (`llm.py`) в репозитории, но **не вызываются** из `service.py`.
 
@@ -115,7 +112,7 @@ RSS (`fetchers/news.py`) и Gemini (`llm.py`) в репозитории, но **
 
 ## Правила кода
 
-1. **Graceful degradation** — каждый fetch в своём `try/except`; падение одной темы новостей не роняет остальные
+1. **Graceful degradation** — каждый fetch в своём `try/except`; падение одной темы новостей не роняет хаб
 2. **Telegram HTML** — только `<b>` и `<a href>` в новостях; `parse_mode=HTML`
 3. **VND/USD** — отдельный forex API, не CoinGecko
 4. **Новости** — plain text от модели, HTML собираем в `report.py`
@@ -136,9 +133,9 @@ RSS (`fetchers/news.py`) и Gemini (`llm.py`) в репозитории, но **
 
 ## Workflow
 
-- **GitHub Actions:** cron 07:00 (бриф+новости) и 18:00 (бриф) Da Nang; `workflow_dispatch`; `curl POST /cron/digest`
+- **GitHub Actions:** cron 07:00 и 18:00 Da Nang (оба — бриф); `workflow_dispatch`; `curl POST /cron/digest`
 - **Railway:** `python bot.py`; Serverless; `GET /health`
-- **Отладка новостей:** `python scripts/openrouter_call.py --topic ai`
+- **Отладка новостей:** `python scripts/openrouter_call.py --topic ai --period week`
 
 ## Рефакторинг и улучшения
 

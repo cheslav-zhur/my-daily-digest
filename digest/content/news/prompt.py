@@ -1,17 +1,28 @@
 from __future__ import annotations
 
 from digest.content.news.parse import MAX_TOPIC_LINKS, NO_NEWS_MARKER
+from digest.content.news.period import (
+    NewsPeriod,
+    period_summary_scope_en,
+    period_window_en,
+)
 from digest.content.news.topics import NewsTopic
 
 
-def build_topic_prompt(topic: NewsTopic, report_date: str) -> str:
+def build_topic_prompt(
+    topic: NewsTopic,
+    report_date: str,
+    period: NewsPeriod = "day",
+) -> str:
+    window = period_window_en(period)
+    scope = period_summary_scope_en(period)
     return (
-        f"Date: {report_date}. Find: {topic.search_brief}\n\n"
+        f"Date: {report_date}. Time window: {window}. Find: {topic.search_brief}\n\n"
         "Search the web in English (international sources: US, EU, global tech media). "
         "Write the answer in Russian.\n\n"
         "Return ONLY plain text, no HTML and no markdown.\n"
         "Structured response (strict, one field per line):\n"
-        "SUMMARY: 1-2 sentences in Russian — the main news of the day. "
+        f"SUMMARY: 1-2 sentences in Russian — {scope}. "
         "Plain text only: no URLs, no [1] footnotes, no LINK lines inside summary.\n"
         f"LINK: https://... | Short article headline in Russian\n"
         f"(up to {MAX_TOPIC_LINKS - 1} more LINK lines — each on its own line)\n\n"
@@ -20,6 +31,8 @@ def build_topic_prompt(topic: NewsTopic, report_date: str) -> str:
         "- Links only in LINK lines, never in SUMMARY\n"
         "- URLs only from sources found in search\n"
         "- No intro phrases or text outside this format\n"
-        "- If search found no relevant news for the last 24 hours, respond with "
+        f"- Prefer sources and events inside the {window} even if the Find brief "
+        "mentions a different window\n"
+        f"- If search found no relevant news for the {window}, respond with "
         f"exactly one line: SUMMARY: {NO_NEWS_MARKER} (no LINK lines, no explanations)"
     )
