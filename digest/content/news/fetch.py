@@ -30,6 +30,10 @@ from digest.trace_source import trace_source
 
 DEFAULT_NEWS_MODEL = "perplexity/sonar"
 TOPIC_TIMEOUT_S = 30
+# Sonar reserves this many completion tokens against the credit balance when
+# max_tokens is omitted (65536). A topic reply is one SUMMARY plus up to four
+# LINK lines, so a small cap lets a nearly empty balance still pay for the call.
+NEWS_MAX_TOKENS = 1024
 
 
 @dataclass
@@ -89,6 +93,7 @@ def _chat_extra(period: NewsPeriod = "day") -> dict[str, Any]:
         "search_recency_filter": period,
         "web_search_options": {"search_context_size": "low"},
         "usage": {"include": True},
+        "max_tokens": NEWS_MAX_TOKENS,
     }
 
 

@@ -25,6 +25,12 @@ def test_chat_extra_month_sets_month_recency() -> None:
     assert _chat_extra("month")["search_recency_filter"] == "month"
 
 
+def test_chat_extra_caps_completion_tokens() -> None:
+    """OpenRouter reserves max_tokens against the balance; sonar's default is 65536."""
+    for period in NEWS_PERIODS:
+        assert _chat_extra(period)["max_tokens"] == 1024
+
+
 def test_news_periods_are_day_week_month() -> None:
     assert NEWS_PERIODS == ("day", "week", "month")
 
