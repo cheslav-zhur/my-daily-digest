@@ -34,7 +34,7 @@ Full digest HTML is assembled in code (`report.py`) — no LLM for weather/rates
 ```mermaid
 flowchart LR
   subgraph triggers [Triggers]
-    GHA[GitHub Actions<br/>07:00 / 18:00 Da Nang]
+    GHA[GitHub Actions<br/>twice a day]
     User[Telegram user<br/>/brief · /news]
   end
 
