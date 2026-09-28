@@ -81,18 +81,6 @@ python bot.py          # bot (polling locally)
 
 **Full setup** (secrets, GitHub, Railway, Langfuse, debug scripts): see **[SETUP.md](SETUP.md)**.
 
-## Project layout
-
-Top level:
-
-- `main.py` — local: full digest → Telegram
-- `bot.py` — Telegram bot (`/brief`, `/news`, …)
-- `digest/` — content fetchers, news pipeline, Telegram delivery
-- `scripts/` — dev/debug helpers
-- `.github/workflows/` — daily cron → Railway
-
-Full annotated tree — see **[AGENTS.md](AGENTS.md)** (canonical source for project structure).
-
 ## Modes
 
 | Mode | Entry | Where |
@@ -100,5 +88,7 @@ Full annotated tree — see **[AGENTS.md](AGENTS.md)** (canonical source for pro
 | Scheduled digest | `POST /cron/digest` | GitHub Actions → Railway |
 | Local digest | `python main.py` | dev machine |
 | Bot commands | `python bot.py` | Railway or local |
+
+Project layout: **[STRUCTURE.md](STRUCTURE.md)**.
 
 Agent / contributor notes: **[AGENTS.md](AGENTS.md)**.

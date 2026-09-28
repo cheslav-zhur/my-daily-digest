@@ -1,155 +1,117 @@
 # AGENTS.md
 
-## Проект
+## Project
 
-**Daily Digest Bot** — персональный утренний брифинг в Telegram.
+**Daily Digest Bot** — a personal morning briefing in Telegram.
 
-GitHub Actions **2 раза в день** дергает `POST /cron/digest` на Railway; сборка и отправка — на сервере:
+GitHub Actions hits `POST /cron/digest` on Railway **twice a day**; assembly and delivery happen on the server:
 
-- Погода в Da Nang
-- Курсы: BTC, ETH, VND/USD
-- Мотивация
+- Weather in Da Nang
+- Rates: BTC, ETH, VND/USD
+- Motivation
 
-Новости **не** уходят по cron: только по запросу через хаб «Новости» (кнопка под брифом или `/news`) — тема → период → один LLM-запрос.
+News is **not** sent by cron: only on request through the «Новости» hub (button under the brief, or `/news`) — topic → period → one LLM call.
 
-**Стек:** Python 3.11+, GitHub Actions, Railway (webhook + Serverless), OpenRouter (`perplexity/sonar`), Langfuse (опционально), Telegram Bot API, wttr.in, CoinGecko.
+**Stack:** Python 3.11+, GitHub Actions, Railway (webhook + Serverless), OpenRouter (`perplexity/sonar`), Langfuse (optional), Telegram Bot API, wttr.in, CoinGecko.
 
-**БД нет** — каждый запуск stateless.
+**No database** — every run is stateless.
 
-**Настройка и секреты:** см. [`SETUP.md`](SETUP.md).
+**Setup and secrets:** see [`SETUP.md`](SETUP.md).
+
+**Project layout:** see [`STRUCTURE.md`](STRUCTURE.md).
 
 ## GitHub
 
 - **Repo:** https://github.com/happylolonly/my-daily-digest
 
-## Структура
+## Run modes
+
+| Mode | Entry point | Where it runs |
+|------|-------------|---------------|
+| Morning and evening: brief only (+ «Новости» button) | `POST /cron/digest` | GitHub Actions → Railway |
+| Commands `/brief`, `/news`, … | `python bot.py` | Railway (webhook) or locally (polling) |
+
+**Bot mode:** if `WEBHOOK_URL` or `RAILWAY_PUBLIC_DOMAIN` + `WEBHOOK_SECRET` is set → webhook; otherwise polling.
+
+## News (hot path)
+
+**11 topics, 3 groups** (catalog for the hub; one topic is fetched per request):
+
+| Group | Topics |
+|-------|--------|
+| Technology | AI, Crypto, Technology, Robotics |
+| World | Economy, Geopolitics, Dubai, Singapore, Vietnam |
+| Politics | War (RU–UA), Belarus |
 
 ```
-main.py                  # локально: бриф → Telegram (как cron)
-digest/scheduled.py      # deliver_scheduled_digest() — cron + main.py
-bot.py                   # entry point → digest.telegram.bot.run_bot()
-digest/
-  config.py              # logging, timezone, load_local_env
-  observability.py       # Langfuse init / flush
-  content/
-    service.py           # build_digest_delivery() — brief / weather / rates
-    report.py            # Telegram HTML (brief, single-topic news)
-    openrouter.py        # OpenRouter chat/completions + retry + Langfuse
-    news/
-      topics.py          # 11 тем, 3 группы (tech / world / politics)
-      period.py          # day / week / month
-      prompt.py          # промпт SUMMARY + LINK (поиск EN, ответ RU)
-      parse.py           # парсинг, citations whitelist, format block
-      fetch.py           # fetch_topic_news() — один топик + период
-    llm.py               # Gemini (не в hot path, оставлен на будущее)
-    fetchers/            # wttr.in, CoinGecko, forex, news.py (RSS — не в hot path)
-  telegram/              # бот: команды, news hub, webhook, доставка
-scripts/
-  openrouter_call.py     # dev: вызов OpenRouter + Langfuse
-requirements.txt
-railway.toml
-.github/workflows/daily.yml
-```
-
-Это дерево — **canonical** источник по структуре проекта; `README.md` ссылается сюда, а не дублирует.
-
-**Источники правды (не дублировать факты в прозе):**
-
-- **Темы и группы новостей** — `digest/content/news/topics.py`
-- **Команды бота** — `digest/telegram/handlers.py` (регистрация + `HELP_TEXT`)
-- **Переменные окружения** — `.env.example` + `SETUP.md`
-- **Слоты cron** — `.github/workflows/daily.yml`
-
-Доки описывают *поведение и связи*; конкретные списки тем/команд держим в коде, чтобы они не расходились.
-
-**Два режима работы**
-
-| Режим | Entry point | Где запускать |
-|-------|-------------|---------------|
-| Утро и вечер: только бриф (+ кнопка «Новости») | `POST /cron/digest` | GitHub Actions → Railway |
-| Команды `/brief`, `/news`, … | `python bot.py` | Railway (webhook) или локально (polling) |
-
-**Режим бота:** если задан `WEBHOOK_URL` или `RAILWAY_PUBLIC_DOMAIN` + `WEBHOOK_SECRET` → webhook; иначе polling.
-
-## Новости (hot path)
-
-**11 тем, 3 группы** (каталог для хаба; по запросу берётся одна тема):
-
-| Группа | Темы |
-|--------|------|
-| Технологии | ИИ, Крипта, Технологии, Робототехника |
-| Мировое | Экономика, Геополитика, Дубай, Сингапур, Вьетнам |
-| Политика | Война (RU–UA), Беларусь |
-
-```
-/news или кнопка «Новости»
+/news or the «Новости» button
   → topic keyboard → period (day/week/month)
   → fetch_topic_news(topic, date, period)
   → 1× OpenRouter (perplexity/sonar, 30s timeout, search_recency_filter)
-  → parse + build_single_topic_news_html → сообщение + снова topic keyboard
+  → parse + build_single_topic_news_html → message + topic keyboard again
 ```
 
-## Доставка в Telegram
+## Telegram delivery
 
-Cron / `/brief` — **1 сообщение**: дата, погода, курсы, мотивация; на cron-брифе — inline-кнопка «Новости» (LLM новостей не вызывается).
+Cron / `/brief` — **1 message**: date, weather, rates, motivation; the cron brief includes an inline «Новости» button (no news LLM call).
 
-`/news` — открывает хаб тем (без fetch). После выбора периода — **1 сообщение** по одной теме; пустой/упавший запрос — понятный ответ только по этой теме.
+`/news` opens the topic hub (no fetch). After a period is chosen — **1 message** for that topic; an empty or failed request gets a clear reply for that topic only.
 
-RSS (`fetchers/news.py`) и Gemini (`llm.py`) в репозитории, но **не вызываются** из `service.py`.
+RSS (`fetchers/news.py`) and Gemini (`llm.py`) are in the repo but **are not called** from `service.py`.
 
-## Идиоматичный Python
+## Idiomatic Python
 
-- **Функции, не классы** — каждый источник данных = одна функция `fetch_*() -> str | None`
-- **`dataclasses`** — для данных между слоями
-- **`os.environ`** — конфиг из env; локально `.env` через `python-dotenv` только в dev
-- **`logging`**, не `print`
-- **`requests`** с явным `timeout` (fetchers: 10s; OpenRouter: 30s)
-- **Type hints** на публичных функциях
-- **stdlib first** — не тащить лишние зависимости (OpenRouter через `requests`, не SDK)
+- **Functions, not classes** — each data source is one function `fetch_*() -> str | None`
+- **`dataclasses`** — for data passed between layers
+- **`os.environ`** — config from env; local `.env` via `python-dotenv` in dev only
+- **`logging`**, not `print`
+- **`requests`** with an explicit `timeout` (fetchers: 10s; OpenRouter: 30s)
+- **Type hints** on public functions
+- **stdlib first** — skip extra dependencies (OpenRouter via `requests`, not an SDK)
 
-## Тесты
+## Tests
 
-Конвенции и запуск — см. [`TESTING.md`](TESTING.md). Кратко: `pytest`, тесты в `tests/`, dev-зависимости в `requirements-dev.txt` (не в прод).
+Conventions and how to run: see [`TESTING.md`](TESTING.md). In short: `pytest`, tests in `tests/`, dev dependencies in `requirements-dev.txt` (not in prod).
 
-## Правила кода
+## Code rules
 
-1. **Graceful degradation** — каждый fetch в своём `try/except`; падение одной темы новостей не роняет хаб
-2. **Telegram HTML** — только `<b>` и `<a href>` в новостях; `parse_mode=HTML`
-3. **VND/USD** — отдельный forex API, не CoinGecko
-4. **Новости** — plain text от модели, HTML собираем в `report.py`
-5. **Citations** — whitelist URL из `citations`, `search_results`, `message.annotations` (OpenRouter)
+1. **Graceful degradation** — each fetch in its own `try/except`; one failed news topic does not take down the hub
+2. **Telegram HTML** — only `<b>` and `<a href>` in news; `parse_mode=HTML`
+3. **VND/USD** — a separate forex API, not CoinGecko
+4. **News** — plain text from the model; HTML is assembled in `report.py`
+5. **Citations** — URL whitelist from `citations`, `search_results`, `message.annotations` (OpenRouter)
 
-## Секреты
+## Secrets
 
-См. [`SETUP.md`](SETUP.md). Кратко:
+See [`SETUP.md`](SETUP.md). In short:
 
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `OPENROUTER_API_KEY` — обязательные на Railway
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `OPENROUTER_API_KEY` — required on Railway
 - `CRON_SECRET` — GitHub Actions + Railway (`Authorization: Bearer`)
-- `RAILWAY_PUBLIC_DOMAIN` — в GitHub secrets для cron workflow
-- `TELEGRAM_USER_ID` — авторизация команд бота
-- `LANGFUSE_*` — опционально
+- `RAILWAY_PUBLIC_DOMAIN` — in GitHub secrets for the cron workflow
+- `TELEGRAM_USER_ID` — authorizes bot commands
+- `LANGFUSE_*` — optional
 - `WEBHOOK_*` — Railway prod
 
-Не коммитить секреты.
+Do not commit secrets.
 
 ## Workflow
 
-- **GitHub Actions:** cron дважды в день (оба — бриф); `workflow_dispatch`; `curl POST /cron/digest`
+- **GitHub Actions:** cron twice a day (both runs are the brief); `workflow_dispatch`; `curl POST /cron/digest`
 - **Railway:** `python bot.py`; Serverless; `GET /health`
-- **Отладка новостей:** `python scripts/openrouter_call.py --topic ai --period week`
+- **News debugging:** `python scripts/openrouter_call.py --topic ai --period week`
 
-## Рефакторинг и улучшения
+## Refactoring and improvements
 
-Агенты **проактивно замечают** возможности улучшить систему и **кратко предлагают** их — не ждут явного запроса.
+Agents **proactively notice** chances to improve the system and **briefly propose** them — they do not wait for an explicit request.
 
-**На что смотреть:** надёжность, таймауты, консистентность с этим файлом, лишние LLM-вызовы, логирование cost в OpenRouter.
+**Watch for:** reliability, timeouts, consistency with this file, extra LLM calls, OpenRouter cost logging.
 
-**Границы:** stateless, без БД, без over-engineering.
+**Boundaries:** stateless, no database, no over-engineering.
 
-## Чего не делать
+## What not to do
 
-- БД, Redis, очереди
-- NewsAPI без явного запроса
-- Over-engineering: DI, фабрики для fetchers
-- Доки сверх запроса пользователя
-- Крупный рефакторинг без согласования
+- Database, Redis, queues
+- NewsAPI unless explicitly requested
+- Over-engineering: DI, factories for fetchers
+- Docs beyond what the user asked for
+- A large refactor without agreement
