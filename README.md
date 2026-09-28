@@ -1,12 +1,13 @@
 # Daily Digest Bot
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/cheslav-zhur/my-daily-digest/tests.yml?branch=main&label=tests)](https://github.com/cheslav-zhur/my-daily-digest/actions/workflows/tests.yml)
+[![Railway](https://img.shields.io/badge/Railway-deploy-0B0D0E?logo=railway&logoColor=white)](https://railway.app)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-cron-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+
 [![Python](https://img.shields.io/badge/python-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?logo=telegram&logoColor=white)](https://core.telegram.org/bots)
-[![Railway](https://img.shields.io/badge/Railway-deploy-0B0D0E?logo=railway&logoColor=white)](https://railway.app)
 [![OpenRouter](https://img.shields.io/badge/OpenRouter-LLM-6B21A8)](https://openrouter.ai)
 [![Langfuse](https://img.shields.io/badge/Langfuse-tracing-F04438)](https://langfuse.com)
-[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-cron-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
 
 Personal morning briefing in Telegram: weather, crypto/forex rates, and news (11 topics across tech, world, politics).
 
