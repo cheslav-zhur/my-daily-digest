@@ -1,0 +1,7 @@
+[build]
+builder = "railpack"
+
+[deploy]
+startCommand = "python main.py"
+cronSchedule = "0 0,11 * * *"
+restartPolicyType = "never"

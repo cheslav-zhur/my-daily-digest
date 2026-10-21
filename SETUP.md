@@ -91,11 +91,13 @@ railway variable set TELEGRAM_BOT_TOKEN=... OPENROUTER_API_KEY=... CRON_SECRET=.
 
 Full Railway variable list: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_USER_ID`, `OPENROUTER_API_KEY`, `LANGFUSE_*`, `WEBHOOK_*`, `CRON_SECRET`
 
-## 4. GitHub Actions (cron)
+## 4. Scheduled brief
 
-Workflow: [`.github/workflows/daily.yml`](.github/workflows/daily.yml) — morning and evening, brief only (+ «Новости» button).
+Cron service config: [`railway.cron.toml`](railway.cron.toml). It runs `python main.py` and exits. The bot service stays on [`railway.toml`](railway.toml) and must not get this schedule.
 
-- Manual run: **Actions → Daily Digest → Run workflow**
+The cron service needs `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (same values as the bot).
+
+Manual run of the old path: **Actions → Daily Digest → Run workflow** (`POST /cron/digest`).
 
 Repository secrets:
 

@@ -24,8 +24,8 @@ Full digest HTML is assembled in code (`report.py`) — no LLM for weather/rates
 ## Stack
 
 - Python 3.11+
-- **GitHub Actions** — cron trigger (`curl POST /cron/digest`)
-- **Railway** — digest execution + Telegram bot (`bot.py`, webhook or polling)
+- **Railway** — cron brief (`python main.py`) and Telegram bot (`bot.py`, webhook or polling)
+- **GitHub Actions** — manual trigger only (`curl POST /cron/digest`)
 - **OpenRouter** — news (Perplexity Sonar)
 - **Langfuse** — optional tracing
 - python-telegram-bot, requests, feedparser
@@ -35,7 +35,7 @@ Full digest HTML is assembled in code (`report.py`) — no LLM for weather/rates
 ```mermaid
 flowchart LR
   subgraph triggers [Triggers]
-    GHA[GitHub Actions<br/>twice a day]
+    CronSvc[Railway cron<br/>twice a day]
     User[Telegram user<br/>/brief · /news]
   end
 
@@ -56,7 +56,7 @@ flowchart LR
   TG[Telegram chat]
   LF[Langfuse<br/>optional]
 
-  GHA -->|Bearer CRON_SECRET| Cron
+  CronSvc --> Brief
   User --> Bot
   Cron --> Brief
   Bot -->|/brief| Brief
@@ -85,7 +85,7 @@ python bot.py          # bot (polling locally)
 
 | Mode | Entry | Where |
 |------|-------|-------|
-| Scheduled digest | `POST /cron/digest` | GitHub Actions → Railway |
+| Scheduled digest | `python main.py` | Railway cron service |
 | Local digest | `python main.py` | dev machine |
 | Bot commands | `python bot.py` | Railway or local |
 

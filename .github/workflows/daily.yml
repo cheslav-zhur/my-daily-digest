@@ -1,10 +1,7 @@
 name: Daily Digest
 
+# Schedule lives in railway.cron.toml. This workflow is a manual trigger only.
 on:
-  schedule:
-    # 07:17 and 18:23 Da Nang (UTC+7). Off :00 to avoid the Actions queue peak.
-    - cron: "17 0 * * *"
-    - cron: "23 11 * * *"
   workflow_dispatch:
 
 jobs:
