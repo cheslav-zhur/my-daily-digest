@@ -4,8 +4,7 @@ date: 2026-10-21
 status: decided # Railway cron service is not up yet, see Status
 tags: [cron, github-actions, railway, brief]
 files:
-  - railway/cron.toml
-  - railway/bot.toml
+  - .railway/railway.ts
 ---
 
 # Brief arrives late: cron moved from GitHub Actions to Railway
@@ -29,13 +28,13 @@ Other repositories report the same pattern in 2026: delay grew from tens of minu
 
 ## Decision
 
-The schedule lives in Railway cron. Slots are in [`railway/cron.toml`](../../railway/cron.toml).
+The schedule lives in Railway cron. Slots are in [`.railway/railway.ts`](../../.railway/railway.ts).
 
 It is a separate service. Railway runs the start command on the crontab and waits until the process exits. If the previous run is still going, the next one is skipped. `python bot.py` does not exit, so the cron must not be attached to the bot service. The cron service starts `python main.py` (send the brief, then exit) with `restartPolicyType = "never"`.
 
 One crontab expression cannot express 07:17 and 18:23. `0 0,11 * * *` is 07:00 and 18:00 Da Nang (UTC). Railway says it does not guarantee the exact minute: slip is a few minutes, not hours. Runs must be at least 5 minutes apart.
 
-Configs live in a folder, not the repo root: `railway/bot.toml` and `railway/cron.toml`. Railway auto-reads only `railway.toml` or `railway.json` at the root. Each service sets the path explicitly: `/railway/bot.toml` and `/railway/cron.toml`. Otherwise the next bot deploy loses `python bot.py` and `/health`.
+Railway auto-reads only a root `railway.toml` or `railway.json`, and that file applies to every service. A second toml path is rejected. Both services are declared in [`.railway/railway.ts`](../../.railway/railway.ts). `railway config apply` is what sends that file. A push does not.
 
 A second service does not add a subscription. Two short runs a day of this app are about a cent per month and sit inside Hobby usage. It costs more only if the process fails to exit and stays up: at ~0.11 GB that is about $1.10 per month for memory.
 
@@ -46,5 +45,5 @@ A second service does not add a subscription. Two short runs a day of this app a
 The decision is made. The schedule is not live yet.
 
 - Root `railway.toml` and `railway.cron.toml` are removed. A root file would apply the bot start command to every service in the repo.
-- Railway rejects setting `railwayConfigFile` to another toml: config-as-code is deprecated. `railway/bot.toml` and `railway/cron.toml` record the settings. The services themselves hold the start command, healthcheck, and cron schedule.
-- Service `cron` exists in production (Europe, `python main.py`, `0 0,11 * * *`, restart never). It has no GitHub source and no deployment. Connect it to `cheslav-zhur/my-daily-digest` `main` after this commit is pushed. Connecting earlier deploys the old root `railway.toml` and boots a second bot.
+- Service settings live in `.railway/railway.ts`. Railway does not read that file on deploy. `railway config apply` sends it. Config-as-code toml is deprecated and cannot name a second file.
+- Service `cron` exists in production (Singapore, `python main.py`, `0 0,11 * * *`, restart never). It has no GitHub source and no deployment. Connect it to `cheslav-zhur/my-daily-digest` `main` after this commit is pushed. Connecting earlier deploys the old root `railway.toml` and boots a second bot.

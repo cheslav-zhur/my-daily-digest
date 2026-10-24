@@ -4,7 +4,7 @@
 
 **Daily Digest Bot** — a personal morning briefing in Telegram.
 
-A Railway cron service runs `python main.py` **twice a day** (slots in [`railway/cron.toml`](railway/cron.toml)); assembly and delivery happen in that process:
+A Railway cron service runs `python main.py` **twice a day** (slots in [`.railway/railway.ts`](.railway/railway.ts)); assembly and delivery happen in that process:
 
 - Weather in Da Nang
 - Rates: BTC, ETH, VND/USD
@@ -97,7 +97,7 @@ Do not commit secrets.
 
 ## Workflow
 
-- **Railway cron:** `python main.py` twice a day (brief only); schedule in `railway/cron.toml`
+- **Railway cron:** `python main.py` twice a day (brief only); schedule in `.railway/railway.ts`
 - **Railway bot:** `python bot.py`; Serverless; `GET /health`
 - **News debugging:** `python scripts/openrouter_call.py --topic ai --period week`
 

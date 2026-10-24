@@ -85,15 +85,15 @@ Full Railway variable list: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_
 
 ## 4. Scheduled brief
 
-The cron service runs `python main.py` and exits. The schedule is `0 0,11 * * *` (07:00 and 18:00 Asia/Ho_Chi_Minh). [`railway/cron.toml`](railway/cron.toml) records that. [`railway/bot.toml`](railway/bot.toml) records the bot.
+The cron service runs `python main.py` and exits. The schedule is `0 0,11 * * *` (07:00 and 18:00 Asia/Ho_Chi_Minh).
 
-Railway applies a root `railway.toml` to every service in the repo, and it rejects a second config-as-code path. This repo has no root config file. The start command, healthcheck, and cron schedule are set on each service. A push to `main` deploys the code; it does not copy one service's start command onto the other.
+Both services are declared in [`.railway/railway.ts`](.railway/railway.ts). `railway config apply` is what puts that file on Railway. A push to `main` deploys code for a service that has a GitHub source. It does not apply the file, and it does not copy one service's start command onto the other.
 
 The cron service needs `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (same values as the bot).
 
 ## 5. Railway (bot)
 
-Recorded in [`railway/bot.toml`](railway/bot.toml). On the service:
+Declared in [`.railway/railway.ts`](.railway/railway.ts). On the service:
 
 - **Start command:** `python bot.py`
 - **Healthcheck:** `GET /health`

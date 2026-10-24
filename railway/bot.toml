@@ -1,9 +1,0 @@
-[build]
-builder = "railpack"
-
-[deploy]
-startCommand = "python bot.py"
-healthcheckPath = "/health"
-healthcheckTimeout = 120
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 10

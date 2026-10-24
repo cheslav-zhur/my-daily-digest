@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 !.env.railway.example
+node_modules/
 __pycache__/
 *.pyc
 
