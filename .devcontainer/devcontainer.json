@@ -1,6 +1,6 @@
 {
   "name": "Daily Digest Bot",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
   "containerEnv": {
     "TZ": "Asia/Ho_Chi_Minh",
     "PIP_CACHE_DIR": "/home/vscode/.cache/pip",
