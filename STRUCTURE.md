@@ -25,9 +25,9 @@ digest/
 scripts/
   openrouter_call.py     # dev: OpenRouter call + Langfuse
 requirements.txt
-railway.toml             # bot service
-railway.cron.toml        # cron service: python main.py
-.github/workflows/daily.yml
+railway/
+  bot.toml               # bot service
+  cron.toml              # cron service: python main.py
 ```
 
 **Sources of truth (do not restate these facts in prose):**
@@ -35,6 +35,6 @@ railway.cron.toml        # cron service: python main.py
 - **News topics and groups** — `digest/content/news/topics.py`
 - **Bot commands** — `digest/telegram/handlers.py` (registration + `HELP_TEXT`)
 - **Environment variables** — `.env.example` + `SETUP.md`
-- **Cron slots** — `railway.cron.toml`
+- **Cron slots** — `railway/cron.toml`
 
 Docs describe behavior and relationships. Concrete topic and command lists stay in code so they do not drift.

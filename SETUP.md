@@ -1,6 +1,6 @@
 # Daily Digest Bot Setup
 
-Step-by-step guide: local run, secrets, GitHub Actions, Railway, OpenRouter, Langfuse.
+Step-by-step guide: local run, secrets, Railway, OpenRouter, Langfuse.
 
 ## 1. Environment variables
 
@@ -75,14 +75,6 @@ The script calls `init_observability()` and `flush_observability()` — traces a
 
 ## 3. Secrets (CLI)
 
-**GitHub** (cron only, 2 secrets):
-
-```bash
-cp .env.production.example .env.production   # fill CRON_SECRET, RAILWAY_PUBLIC_DOMAIN
-gh secret set CRON_SECRET < .env.production
-gh secret set RAILWAY_PUBLIC_DOMAIN --body "my-app.up.railway.app"
-```
-
 **Railway** (bot + digest):
 
 ```bash
@@ -93,22 +85,15 @@ Full Railway variable list: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_
 
 ## 4. Scheduled brief
 
-Cron service config: [`railway.cron.toml`](railway.cron.toml). It runs `python main.py` and exits. The bot service stays on [`railway.toml`](railway.toml) and must not get this schedule.
+The cron service runs `python main.py` and exits. The schedule is `0 0,11 * * *` (07:00 and 18:00 Asia/Ho_Chi_Minh). [`railway/cron.toml`](railway/cron.toml) records that. [`railway/bot.toml`](railway/bot.toml) records the bot.
+
+Railway applies a root `railway.toml` to every service in the repo, and it rejects a second config-as-code path. This repo has no root config file. The start command, healthcheck, and cron schedule are set on each service. A push to `main` deploys the code; it does not copy one service's start command onto the other.
 
 The cron service needs `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (same values as the bot).
 
-Manual run of the old path: **Actions → Daily Digest → Run workflow** (`POST /cron/digest`).
-
-Repository secrets:
-
-- `CRON_SECRET` — same random string as on Railway
-- `RAILWAY_PUBLIC_DOMAIN` — e.g. `my-app.up.railway.app` (no `https://`)
-
-The workflow only wakes Railway and waits for a response (up to 180 s). All API keys stay on Railway.
-
 ## 5. Railway (bot)
 
-Config: [`railway.toml`](railway.toml)
+Recorded in [`railway/bot.toml`](railway/bot.toml). On the service:
 
 - **Start command:** `python bot.py`
 - **Healthcheck:** `GET /health`
@@ -144,9 +129,10 @@ The code also strips quotes in `digest/observability.py`.
 
 VS Code / Cursor → **Reopen in Container**.
 
-- Python 3.11, GitHub CLI, Railway CLI, `pip install` on create
+- Python 3.12 (Debian bookworm), GitHub CLI, Railway CLI, `pip install` on create
 - App secrets: `.env` (read by `load_local_env()` from the mounted workspace)
-- Railway CLI: `cp .env.railway.example .env.railway` — only `RAILWAY_TOKEN` is injected into the container
+- Railway CLI: `cp .env.railway.example .env.railway` — only `RAILWAY_TOKEN` is injected into the container (Docker reads that file when the container is created; rebuild after changing it)
+- Railway MCP (`.cursor/mcp.json`): status of this work is unclear for now. Direct OAuth to `https://mcp.railway.com` fails while dynamic client registration is disabled. The project token is enough for CLI commands on this project; remote MCP needs a user `railway login`, which is not set up. Do not treat MCP as a working path until that is settled.
 
 ## 8. Bot commands
 
@@ -167,6 +153,6 @@ Access restricted to `TELEGRAM_USER_ID`.
 | News shows "data unavailable" | `OPENROUTER_API_KEY` in `.env` / Railway |
 | Langfuse not recording traces | keys, `LANGFUSE_BASE_URL` without quotes, `flush` after request |
 | Bot not responding | `TELEGRAM_USER_ID`, polling vs webhook, Railway logs |
-| Empty cron | `CRON_SECRET`, `RAILWAY_PUBLIC_DOMAIN` in GitHub; `TELEGRAM_CHAT_ID`, `CRON_SECRET` on Railway; workflow / Railway logs |
+| Empty cron | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` on the cron service; Railway cron logs |
 
 For news architecture details, see [`AGENTS.md`](AGENTS.md).

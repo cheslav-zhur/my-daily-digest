@@ -1,7 +1,6 @@
 .env
 .env.*
 !.env.example
-!.env.production.example
 !.env.railway.example
 __pycache__/
 *.pyc

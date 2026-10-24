@@ -4,7 +4,7 @@
 
 **Daily Digest Bot** — a personal morning briefing in Telegram.
 
-A Railway cron service runs `python main.py` **twice a day** (slots in [`railway.cron.toml`](railway.cron.toml)); assembly and delivery happen in that process:
+A Railway cron service runs `python main.py` **twice a day** (slots in [`railway/cron.toml`](railway/cron.toml)); assembly and delivery happen in that process:
 
 - Weather in Da Nang
 - Rates: BTC, ETH, VND/USD
@@ -12,7 +12,7 @@ A Railway cron service runs `python main.py` **twice a day** (slots in [`railway
 
 News is **not** sent by cron: only on request through the «Новости» hub (button under the brief, or `/news`) — topic → period → one LLM call.
 
-**Stack:** Python 3.11+, GitHub Actions, Railway (webhook + Serverless), OpenRouter (`perplexity/sonar`), Langfuse (optional), Telegram Bot API, wttr.in, CoinGecko.
+**Stack:** Python 3.12, GitHub Actions, Railway (webhook + Serverless), OpenRouter (`perplexity/sonar`), Langfuse (optional), Telegram Bot API, wttr.in, CoinGecko.
 
 **No database** — every run is stateless.
 
@@ -51,6 +51,8 @@ News is **not** sent by cron: only on request through the «Новости» hub
   → parse + build_single_topic_news_html → message + topic keyboard again
 ```
 
+Perplexity ended Sonar Chat Completions support on 2026-09-27 and points `sonar` at the Agent API preset `fast` (`POST /v1/agent`). Sync calls still answer. Stay on OpenRouter `perplexity/sonar` until `citations`, `search_results`, or `search_recency_filter` break. `fast` is not an OpenRouter model id: the filter moves under `web_search.filters`, and the reply is an `output` array, so `parse.py` would not read it. Do not move news to Gemini to spend GCP credits.
+
 ## Telegram delivery
 
 Cron / `/brief` — **1 message**: date, weather, rates, motivation; the cron brief includes an inline «Новости» button (no news LLM call).
@@ -86,8 +88,7 @@ Conventions and how to run: see [`TESTING.md`](TESTING.md). In short: `pytest`, 
 See [`SETUP.md`](SETUP.md). In short:
 
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `OPENROUTER_API_KEY` — required on Railway
-- `CRON_SECRET` — GitHub Actions + Railway (`Authorization: Bearer`)
-- `RAILWAY_PUBLIC_DOMAIN` — in GitHub secrets for the cron workflow
+- `CRON_SECRET` — Railway, `Authorization: Bearer` for `POST /cron/digest`
 - `TELEGRAM_USER_ID` — authorizes bot commands
 - `LANGFUSE_*` — optional
 - `WEBHOOK_*` — Railway prod
@@ -96,9 +97,8 @@ Do not commit secrets.
 
 ## Workflow
 
-- **Railway cron:** `python main.py` twice a day (brief only); schedule in `railway.cron.toml`
+- **Railway cron:** `python main.py` twice a day (brief only); schedule in `railway/cron.toml`
 - **Railway bot:** `python bot.py`; Serverless; `GET /health`
-- **GitHub Actions:** `workflow_dispatch` only; `curl POST /cron/digest`
 - **News debugging:** `python scripts/openrouter_call.py --topic ai --period week`
 
 ## Refactoring and improvements

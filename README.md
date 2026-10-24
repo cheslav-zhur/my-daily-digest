@@ -7,7 +7,6 @@
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/cheslav-zhur/my-daily-digest/tests.yml?branch=main&label=tests)](https://github.com/cheslav-zhur/my-daily-digest/actions/workflows/tests.yml)
 [![Railway](https://img.shields.io/badge/Railway-deploy-0B0D0E?logo=railway&logoColor=white)](https://railway.app)
-[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-cron-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
 
 Personal morning briefing in Telegram: weather, crypto/forex rates, and news (11 topics across tech, world, politics).
 
@@ -23,9 +22,8 @@ Full digest HTML is assembled in code (`report.py`) — no LLM for weather/rates
 
 ## Stack
 
-- Python 3.11+
+- Python 3.12
 - **Railway** — cron brief (`python main.py`) and Telegram bot (`bot.py`, webhook or polling)
-- **GitHub Actions** — manual trigger only (`curl POST /cron/digest`)
 - **OpenRouter** — news (Perplexity Sonar)
 - **Langfuse** — optional tracing
 - python-telegram-bot, requests, feedparser
