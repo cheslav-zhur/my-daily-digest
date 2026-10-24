@@ -30,7 +30,14 @@ export default defineRailway(() => {
   // Wakes the sleeping bot and exits. The bot sends the brief.
   const cron = service("cron", {
     source: github(repo, { branch, checkSuites: true }),
-    build,
+    build: {
+      ...build,
+      watchPatterns: [
+        "/scripts/wake_digest.py",
+        "/requirements.txt",
+        "/.python-version",
+      ],
+    },
     start: "python scripts/wake_digest.py",
     replicas,
     deploy: {

@@ -4,7 +4,7 @@ Both services are declared in [`.railway/railway.ts`](../.railway/railway.ts). T
 
 ## Push and apply
 
-A push to `main` builds and deploys the code of each service whose source is this GitHub repo. Both services wait for GitHub Actions first (`checkSuites` in `.railway/railway.ts`). The check is `.github/workflows/tests.yml`. A failed `pytest` run skips that deployment, and the previous image stays. Railway gives the checks two hours, then skips the deployment.
+A push to `main` builds and deploys the bot. The cron service deploys only when the push touches its watch paths in `.railway/railway.ts`: `scripts/wake_digest.py`, `requirements.txt`, or `.python-version`. Both services wait for GitHub Actions first (`checkSuites`). The check is `.github/workflows/tests.yml`. A failed `pytest` run skips that deployment, and the previous image stays. Railway gives the checks two hours, then skips the deployment.
 
 Service settings in `.railway/railway.ts` reach Railway through `railway config apply`. That covers the start command, the schedule, sleep, and the variable references. Run `railway config plan` before apply.
 
@@ -27,6 +27,7 @@ Service `cron`. It runs `python scripts/wake_digest.py`, which `POST`s `/cron/di
 - Schedule: `0 0,11 * * *` in `.railway/railway.ts` (07:00 and 18:00 Asia/Ho_Chi_Minh)
 - `restartPolicyType`: `NEVER`
 - `CRON_SECRET`, `BOT_PRIVATE_DOMAIN`, and `BOT_PORT` are references to the bot service (`CRON_SECRET`, `RAILWAY_PRIVATE_DOMAIN`, `PORT`)
+- Watch paths skip a cron deploy when those three files are unchanged
 
 ## Variables
 
