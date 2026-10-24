@@ -7,8 +7,8 @@ const build = { builder: "RAILPACK", buildEnvironment: "V3" } as const;
 const replicas = { [region]: 1 };
 
 export default defineRailway(() => {
-  const bot = service("my-daily-digest", {
-    source: github(repo, { branch, checkSuites: false }),
+  const bot = service("bot", {
+    source: github(repo, { branch, checkSuites: true }),
     build,
     start: "python bot.py",
     healthcheck: "/health",
@@ -29,7 +29,7 @@ export default defineRailway(() => {
 
   // Wakes the sleeping bot and exits. The bot sends the brief.
   const cron = service("cron", {
-    source: github(repo, { branch, checkSuites: false }),
+    source: github(repo, { branch, checkSuites: true }),
     build,
     start: "python scripts/wake_digest.py",
     replicas,

@@ -76,7 +76,7 @@ pip install -r requirements.txt
 python bot.py          # bot (polling locally); /brief sends one brief
 ```
 
-**Full setup** (secrets, GitHub, Railway, Langfuse, debug scripts): see **[SETUP.md](SETUP.md)**.
+**Docs:** [local development](docs/dev.md), [Railway](docs/railway.md), [layout](docs/structure.md), [tests](docs/testing.md).
 
 ## Modes
 
@@ -84,7 +84,5 @@ python bot.py          # bot (polling locally); /brief sends one brief
 |------|-------|-------|
 | Scheduled digest | `python scripts/wake_digest.py` | Railway cron wakes the bot |
 | Bot commands | `python bot.py` | Railway or local |
-
-Project layout: **[STRUCTURE.md](STRUCTURE.md)**.
 
 Agent / contributor notes: **[AGENTS.md](AGENTS.md)**.

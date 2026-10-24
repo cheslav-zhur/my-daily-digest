@@ -9,10 +9,10 @@ from scripts.wake_digest import digest_url, main
 
 def test_digest_url_uses_private_address(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DIGEST_URL", raising=False)
-    monkeypatch.setenv("BOT_PRIVATE_DOMAIN", "my-daily-digest.railway.internal")
+    monkeypatch.setenv("BOT_PRIVATE_DOMAIN", "bot.railway.internal")
     monkeypatch.setenv("BOT_PORT", "8080")
 
-    assert digest_url() == "http://my-daily-digest.railway.internal:8080/cron/digest"
+    assert digest_url() == "http://bot.railway.internal:8080/cron/digest"
 
 
 def test_digest_url_prefers_explicit_url(monkeypatch: pytest.MonkeyPatch) -> None:

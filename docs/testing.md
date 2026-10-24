@@ -30,9 +30,7 @@ pytest
 - **Characterization-first for existing code:** capture current behavior before
   refactoring. If a test reveals a latent bug, flag it — don't silently assert
   the bug as expected.
-- **Test-first for new code** (e.g. the multi-user work): scheduler "who's due"
-  logic, delivery idempotency, `USERS_CONFIG` parsing, cost extraction.
+- **Test-first for new behavior** that has a pure function to pin down.
 - **Fixtures:** sonar responses live as JSON under `tests/fixtures/`.
-- **Code comments and docstrings are in English** (prose docs stay Russian).
-- The `NewsTopic` factory is centralized in `tests/conftest.py` so the
-  `topics.py` removal in the multi-user migration touches one place.
+- **Code comments, docstrings, and these docs are in English.**
+- The `NewsTopic` factory lives in `tests/conftest.py`.

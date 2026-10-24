@@ -12,17 +12,15 @@ A Railway cron service runs **twice a day** (slots in [`.railway/railway.ts`](.r
 
 News is **not** sent by cron: only on request through the «Новости» hub (button under the brief, or `/news`) — topic → period → one LLM call.
 
-**Stack:** Python 3.12, GitHub Actions, Railway (webhook + Serverless), OpenRouter (`perplexity/sonar`), Langfuse (optional), Telegram Bot API, wttr.in, CoinGecko.
+**Stack:** Python 3.12, GitHub Actions (tests), Railway (webhook bot that sleeps when idle, plus cron), OpenRouter (`perplexity/sonar`), Langfuse (optional), Telegram Bot API, wttr.in, CoinGecko.
 
 **No database** — every run is stateless.
 
-**Setup and secrets:** see [`SETUP.md`](SETUP.md).
-
-**Project layout:** see [`STRUCTURE.md`](STRUCTURE.md).
+**Local run:** [`docs/dev.md`](docs/dev.md). **Railway:** [`docs/railway.md`](docs/railway.md). **Layout:** [`docs/structure.md`](docs/structure.md).
 
 ## GitHub
 
-- **Repo:** https://github.com/happylolonly/my-daily-digest
+- **Repo:** https://github.com/cheslav-zhur/my-daily-digest
 
 ## Run modes
 
@@ -73,7 +71,7 @@ RSS (`fetchers/news.py`) and Gemini (`llm.py`) are in the repo but **are not cal
 
 ## Tests
 
-Conventions and how to run: see [`TESTING.md`](TESTING.md). In short: `pytest`, tests in `tests/`, dev dependencies in `requirements-dev.txt` (not in prod).
+Conventions and how to run: see [`docs/testing.md`](docs/testing.md). In short: `pytest`, tests in `tests/`, dev dependencies in `requirements-dev.txt` (not in prod).
 
 ## Code rules
 
@@ -85,7 +83,7 @@ Conventions and how to run: see [`TESTING.md`](TESTING.md). In short: `pytest`, 
 
 ## Secrets
 
-See [`SETUP.md`](SETUP.md). In short:
+See [`docs/railway.md`](docs/railway.md) and [`docs/dev.md`](docs/dev.md). In short:
 
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `OPENROUTER_API_KEY` — required on Railway
 - `CRON_SECRET` — Railway, `Authorization: Bearer` for `POST /cron/digest`
@@ -98,7 +96,8 @@ Do not commit secrets.
 ## Workflow
 
 - **Railway cron:** `python scripts/wake_digest.py` twice a day; the bot sends the brief. Schedule in `.railway/railway.ts`
-- **Railway bot:** `python bot.py`; Serverless; `GET /health`
+- **Railway bot:** `python bot.py`; sleeps when idle (`sleepApplication`); `GET /health`
+- **Settings in `.railway/railway.ts`:** `railway config apply`. A push deploys code after tests pass and does not apply that file. Details in [`docs/railway.md`](docs/railway.md)
 - **News debugging:** `python scripts/openrouter_call.py --topic ai --period week`
 
 ## Refactoring and improvements

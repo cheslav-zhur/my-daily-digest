@@ -32,7 +32,7 @@ requirements.txt
 
 - **News topics and groups** — `digest/content/news/topics.py`
 - **Bot commands** — `digest/telegram/handlers.py` (registration + `HELP_TEXT`)
-- **Environment variables** — `.env.example` + `SETUP.md`
+- **Environment variables** — `.env.example`, [dev.md](dev.md), [railway.md](railway.md)
 - **Cron slots** — `.railway/railway.ts`
 
 Docs describe behavior and relationships. Concrete topic and command lists stay in code so they do not drift.

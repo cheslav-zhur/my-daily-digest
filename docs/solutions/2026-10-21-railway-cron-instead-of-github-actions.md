@@ -42,8 +42,8 @@ A second service does not add a subscription. Two short runs a day of this app a
 
 ## Status on 2026-10-24
 
-The decision is made. The schedule is not live yet.
+The schedule is live. `railway config apply` connected the GitHub source and the cron image built. Both services wait for GitHub Actions before a push deploys (`checkSuites` in `.railway/railway.ts`). Operator notes: [docs/railway.md](../railway.md).
 
 - Root `railway.toml` and `railway.cron.toml` are removed. A root file would apply the bot start command to every service in the repo.
 - Service settings live in `.railway/railway.ts`. Railway does not read that file on deploy. `railway config apply` sends it. Config-as-code toml is deprecated and cannot name a second file.
-- Service `cron` exists in production (Singapore, `0 0,11 * * *`, restart never). Its start command is `python scripts/wake_digest.py`. It needs the same GitHub source as the bot, `CRON_SECRET`, and the bot private host and port. Root `railway.toml` is gone, so that source no longer boots a second bot.
+- Service `cron` is in production (Singapore, `0 0,11 * * *`, restart never). Start command is `python scripts/wake_digest.py`. Source is the same GitHub repo as the bot. `CRON_SECRET`, `BOT_PRIVATE_DOMAIN`, and `BOT_PORT` come from the bot service. Root `railway.toml` is gone, so that source no longer boots a second bot.
