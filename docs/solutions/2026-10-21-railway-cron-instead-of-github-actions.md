@@ -30,7 +30,7 @@ Other repositories report the same pattern in 2026: delay grew from tens of minu
 
 The schedule lives in Railway cron. Slots are in [`.railway/railway.ts`](../../.railway/railway.ts).
 
-It is a separate service. Railway runs the start command on the crontab and waits until the process exits. If the previous run is still going, the next one is skipped. `python bot.py` does not exit, so the cron must not be attached to the bot service. The cron service starts `python main.py` (send the brief, then exit) with `restartPolicyType = "never"`.
+It is a separate service. Railway runs the start command on the crontab and waits until the process exits. If the previous run is still going, the next one is skipped. `python bot.py` does not exit, so the cron must not be attached to the bot service. The cron service starts `python scripts/wake_digest.py` (`POST /cron/digest` on the bot, then exit) with `restartPolicyType = "never"`. The bot wakes and sends the brief.
 
 One crontab expression cannot express 07:17 and 18:23. `0 0,11 * * *` is 07:00 and 18:00 Da Nang (UTC). Railway says it does not guarantee the exact minute: slip is a few minutes, not hours. Runs must be at least 5 minutes apart.
 
@@ -38,7 +38,7 @@ Railway auto-reads only a root `railway.toml` or `railway.json`, and that file a
 
 A second service does not add a subscription. Two short runs a day of this app are about a cent per month and sit inside Hobby usage. It costs more only if the process fails to exit and stays up: at ~0.11 GB that is about $1.10 per month for memory.
 
-`POST /cron/digest` on the bot stays as a manual entry. `.github/workflows/daily.yml` is no longer needed for the schedule.
+`POST /cron/digest` on the bot is how the cron run sends the brief. `.github/workflows/daily.yml` is no longer needed for the schedule.
 
 ## Status on 2026-10-24
 
@@ -46,4 +46,4 @@ The decision is made. The schedule is not live yet.
 
 - Root `railway.toml` and `railway.cron.toml` are removed. A root file would apply the bot start command to every service in the repo.
 - Service settings live in `.railway/railway.ts`. Railway does not read that file on deploy. `railway config apply` sends it. Config-as-code toml is deprecated and cannot name a second file.
-- Service `cron` exists in production (Singapore, `python main.py`, `0 0,11 * * *`, restart never). It has no GitHub source and no deployment. Connect it to `cheslav-zhur/my-daily-digest` `main` after this commit is pushed. Connecting earlier deploys the old root `railway.toml` and boots a second bot.
+- Service `cron` exists in production (Singapore, `0 0,11 * * *`, restart never). Its start command is `python scripts/wake_digest.py`. It needs the same GitHub source as the bot, `CRON_SECRET`, and the bot private host and port. Root `railway.toml` is gone, so that source no longer boots a second bot.

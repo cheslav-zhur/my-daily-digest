@@ -3,8 +3,7 @@
 Canonical annotated tree. Other docs link here and do not copy it.
 
 ```
-main.py                  # local: brief → Telegram (same as cron)
-digest/scheduled.py      # deliver_scheduled_digest() — cron + main.py
+digest/scheduled.py      # deliver_scheduled_digest() — bot POST /cron/digest
 bot.py                   # entry point → digest.telegram.bot.run_bot()
 digest/
   config.py              # logging, timezone, load_local_env
@@ -23,6 +22,7 @@ digest/
     fetchers/            # wttr.in, CoinGecko, forex, news.py (RSS — not on the hot path)
   telegram/              # bot: commands, news hub, webhook, delivery
 scripts/
+  wake_digest.py         # cron: POST /cron/digest, then exit
   openrouter_call.py     # dev: OpenRouter call + Langfuse
 requirements.txt
 .railway/railway.ts      # bot + cron: start commands, healthcheck, schedule

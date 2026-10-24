@@ -23,7 +23,7 @@ Full digest HTML is assembled in code (`report.py`) — no LLM for weather/rates
 ## Stack
 
 - Python 3.12
-- **Railway** — cron brief (`python main.py`) and Telegram bot (`bot.py`, webhook or polling)
+- **Railway** — cron wakes the bot (`POST /cron/digest`); the bot sends the brief (`bot.py`, webhook)
 - **OpenRouter** — news (Perplexity Sonar)
 - **Langfuse** — optional tracing
 - python-telegram-bot, requests, feedparser
@@ -54,7 +54,7 @@ flowchart LR
   TG[Telegram chat]
   LF[Langfuse<br/>optional]
 
-  CronSvc --> Brief
+  CronSvc --> Cron
   User --> Bot
   Cron --> Brief
   Bot -->|/brief| Brief
@@ -73,8 +73,7 @@ Brief on cron does **not** call the LLM. News run only on demand: one OpenRouter
 ```bash
 cp .env.example .env   # fill TELEGRAM_* and OPENROUTER_API_KEY
 pip install -r requirements.txt
-python main.py         # send full digest once (local)
-python bot.py          # bot (polling locally)
+python bot.py          # bot (polling locally); /brief sends one brief
 ```
 
 **Full setup** (secrets, GitHub, Railway, Langfuse, debug scripts): see **[SETUP.md](SETUP.md)**.
@@ -83,8 +82,7 @@ python bot.py          # bot (polling locally)
 
 | Mode | Entry | Where |
 |------|-------|-------|
-| Scheduled digest | `python main.py` | Railway cron service |
-| Local digest | `python main.py` | dev machine |
+| Scheduled digest | `python scripts/wake_digest.py` | Railway cron wakes the bot |
 | Bot commands | `python bot.py` | Railway or local |
 
 Project layout: **[STRUCTURE.md](STRUCTURE.md)**.

@@ -15,7 +15,7 @@ cp .env.example .env
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `TELEGRAM_BOT_TOKEN` | everywhere | Token from [@BotFather](https://t.me/BotFather) |
-| `TELEGRAM_CHAT_ID` | Railway / `main.py` | Chat ID for scheduled digest delivery |
+| `TELEGRAM_CHAT_ID` | Railway | Chat ID for scheduled digest delivery |
 | `OPENROUTER_API_KEY` | news | [OpenRouter](https://openrouter.ai/keys) key; default model `perplexity/sonar` |
 
 ### Bot (Railway / local)
@@ -49,12 +49,6 @@ Do not commit `.env` to git.
 pip install -r requirements.txt
 ```
 
-**Scheduled digest (same as cron):**
-
-```bash
-python main.py
-```
-
 **Telegram bot (commands):**
 
 ```bash
@@ -85,11 +79,11 @@ Full Railway variable list: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_
 
 ## 4. Scheduled brief
 
-The cron service runs `python main.py` and exits. The schedule is `0 0,11 * * *` (07:00 and 18:00 Asia/Ho_Chi_Minh).
+The cron service runs `python scripts/wake_digest.py` and exits. That `POST`s `/cron/digest` on the bot over the private network; the bot wakes and sends the brief. The schedule is `0 0,11 * * *` (07:00 and 18:00 Asia/Ho_Chi_Minh).
 
 Both services are declared in [`.railway/railway.ts`](.railway/railway.ts). `railway config apply` is what puts that file on Railway. A push to `main` deploys code for a service that has a GitHub source. It does not apply the file, and it does not copy one service's start command onto the other.
 
-The cron service needs `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (same values as the bot).
+The cron service needs `CRON_SECRET` (same value as the bot) and the bot's private host and port (`BOT_PRIVATE_DOMAIN`, `BOT_PORT`).
 
 ## 5. Railway (bot)
 
@@ -153,6 +147,6 @@ Access restricted to `TELEGRAM_USER_ID`.
 | News shows "data unavailable" | `OPENROUTER_API_KEY` in `.env` / Railway |
 | Langfuse not recording traces | keys, `LANGFUSE_BASE_URL` without quotes, `flush` after request |
 | Bot not responding | `TELEGRAM_USER_ID`, polling vs webhook, Railway logs |
-| Empty cron | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` on the cron service; Railway cron logs |
+| Empty cron | `CRON_SECRET` matches the bot; `BOT_PRIVATE_DOMAIN` and `BOT_PORT` point at the bot; Railway cron logs |
 
 For news architecture details, see [`AGENTS.md`](AGENTS.md).

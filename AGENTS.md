@@ -4,7 +4,7 @@
 
 **Daily Digest Bot** — a personal morning briefing in Telegram.
 
-A Railway cron service runs `python main.py` **twice a day** (slots in [`.railway/railway.ts`](.railway/railway.ts)); assembly and delivery happen in that process:
+A Railway cron service runs **twice a day** (slots in [`.railway/railway.ts`](.railway/railway.ts)). It `POST`s `/cron/digest` and exits. The bot wakes and sends the brief:
 
 - Weather in Da Nang
 - Rates: BTC, ETH, VND/USD
@@ -28,7 +28,7 @@ News is **not** sent by cron: only on request through the «Новости» hub
 
 | Mode | Entry point | Where it runs |
 |------|-------------|---------------|
-| Morning and evening: brief only (+ «Новости» button) | `python main.py` | Railway cron service |
+| Morning and evening: brief only (+ «Новости» button) | `python scripts/wake_digest.py` → `POST /cron/digest` | Railway cron wakes the bot |
 | Commands `/brief`, `/news`, … | `python bot.py` | Railway (webhook) or locally (polling) |
 
 **Bot mode:** if `WEBHOOK_URL` or `RAILWAY_PUBLIC_DOMAIN` + `WEBHOOK_SECRET` is set → webhook; otherwise polling.
@@ -97,7 +97,7 @@ Do not commit secrets.
 
 ## Workflow
 
-- **Railway cron:** `python main.py` twice a day (brief only); schedule in `.railway/railway.ts`
+- **Railway cron:** `python scripts/wake_digest.py` twice a day; the bot sends the brief. Schedule in `.railway/railway.ts`
 - **Railway bot:** `python bot.py`; Serverless; `GET /health`
 - **News debugging:** `python scripts/openrouter_call.py --topic ai --period week`
 

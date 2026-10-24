@@ -27,26 +27,27 @@ export default defineRailway(() => {
     },
   });
 
-  // No GitHub source yet. origin/main still has a root railway.toml, and a
-  // deploy of that commit would start this service with python bot.py.
+  // Wakes the sleeping bot and exits. The bot sends the brief.
   const cron = service("cron", {
+    source: github(repo, { branch, checkSuites: false }),
     build,
-    start: "python main.py",
+    start: "python scripts/wake_digest.py",
     replicas,
     deploy: {
       cronSchedule: "0 0,11 * * *",
       restartPolicyType: "NEVER",
     },
     env: {
-      TELEGRAM_BOT_TOKEN: bot.env.TELEGRAM_BOT_TOKEN,
-      TELEGRAM_CHAT_ID: bot.env.TELEGRAM_CHAT_ID,
-      LANGFUSE_PUBLIC_KEY: bot.env.LANGFUSE_PUBLIC_KEY,
-      LANGFUSE_SECRET_KEY: bot.env.LANGFUSE_SECRET_KEY,
+      CRON_SECRET: bot.env.CRON_SECRET,
+      BOT_PRIVATE_DOMAIN: bot.env.RAILWAY_PRIVATE_DOMAIN,
+      BOT_PORT: bot.env.PORT,
     },
   });
 
-  return project("my-daily-digest", {
-    variables: { managed: true },
+  // The CLI reads `variables`. The published ProjectDefinition type does not declare it.
+  const definition = {
     resources: [bot, cron],
-  });
+    variables: { managed: true },
+  };
+  return project("my-daily-digest", definition);
 });
