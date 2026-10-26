@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 
 import requests
 
@@ -36,7 +37,7 @@ def _missing_config() -> list[str]:
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
     missing = _missing_config()
     if missing:
         raise SystemExit(f"Missing {', '.join(missing)}.")
