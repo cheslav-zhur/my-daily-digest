@@ -22,12 +22,26 @@ def digest_url() -> str:
     return f"http://{host}:{port}/cron/digest"
 
 
+def _missing_config() -> list[str]:
+    missing: list[str] = []
+    if not os.environ.get("CRON_SECRET", "").strip():
+        missing.append("CRON_SECRET")
+    if os.environ.get("DIGEST_URL", "").strip():
+        return missing
+    if not os.environ.get("BOT_PRIVATE_DOMAIN", "").strip():
+        missing.append("BOT_PRIVATE_DOMAIN")
+    if not os.environ.get("BOT_PORT", "").strip():
+        missing.append("BOT_PORT")
+    return missing
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    missing = _missing_config()
+    if missing:
+        raise SystemExit(f"Missing {', '.join(missing)}.")
     secret = os.environ.get("CRON_SECRET", "").strip()
     url = digest_url()
-    if not secret or not url:
-        raise SystemExit("CRON_SECRET and the bot address are required.")
 
     response = requests.post(
         url,

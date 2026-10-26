@@ -56,5 +56,15 @@ def test_main_exits_without_address(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("BOT_PRIVATE_DOMAIN", raising=False)
     monkeypatch.delenv("BOT_PORT", raising=False)
 
-    with pytest.raises(SystemExit, match="bot address"):
+    with pytest.raises(SystemExit, match=r"^Missing BOT_PRIVATE_DOMAIN, BOT_PORT\.$"):
+        main()
+
+
+def test_main_names_empty_port(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CRON_SECRET", "s3cret")
+    monkeypatch.delenv("DIGEST_URL", raising=False)
+    monkeypatch.setenv("BOT_PRIVATE_DOMAIN", "bot.railway.internal")
+    monkeypatch.setenv("BOT_PORT", "  ")
+
+    with pytest.raises(SystemExit, match=r"^Missing BOT_PORT\.$"):
         main()
