@@ -6,7 +6,7 @@ const region = "asia-southeast1-eqsg3a";
 const build = { builder: "RAILPACK", buildEnvironment: "V3" } as const;
 const replicas = { [region]: 1 };
 
-export default defineRailway(() => {
+export default defineRailway((ctx) => {
   const bot = service("bot", {
     source: github(repo, { branch, checkSuites: true }),
     build,
@@ -16,7 +16,7 @@ export default defineRailway(() => {
     replicas,
     deploy: { sleepApplication: true },
     env: {
-      CRON_SECRET: preserve(),
+      CRON_SECRET: ctx.shared.CRON_SECRET,
       LANGFUSE_PUBLIC_KEY: preserve(),
       LANGFUSE_SECRET_KEY: preserve(),
       OPENROUTER_API_KEY: preserve(),
@@ -45,7 +45,7 @@ export default defineRailway(() => {
       restartPolicyType: "NEVER",
     },
     env: {
-      CRON_SECRET: bot.env.CRON_SECRET,
+      CRON_SECRET: ctx.shared.CRON_SECRET,
       BOT_PRIVATE_DOMAIN: bot.env.RAILWAY_PRIVATE_DOMAIN,
       BOT_PORT: bot.env.PORT,
     },

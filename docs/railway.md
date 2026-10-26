@@ -26,18 +26,20 @@ Service `cron`. It runs `python scripts/wake_digest.py`, which `POST`s `/cron/di
 
 - Schedule: `0 0,11 * * *` in `.railway/railway.ts` (07:00 and 18:00 Asia/Ho_Chi_Minh)
 - `restartPolicyType`: `NEVER`
-- `CRON_SECRET`, `BOT_PRIVATE_DOMAIN`, and `BOT_PORT` are references to the bot service (`CRON_SECRET`, `RAILWAY_PRIVATE_DOMAIN`, `PORT`)
+- `CRON_SECRET` is `${{shared.CRON_SECRET}}` on both services. `BOT_PRIVATE_DOMAIN` and `BOT_PORT` reference the bot (`RAILWAY_PRIVATE_DOMAIN`, `PORT`)
 - Watch paths skip a cron deploy when those three files are unchanged
 
 ## Variables
 
 ```bash
-railway variable set TELEGRAM_BOT_TOKEN=... OPENROUTER_API_KEY=... CRON_SECRET=...
+railway variable set TELEGRAM_BOT_TOKEN=... OPENROUTER_API_KEY=...
 ```
 
-On the bot: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_USER_ID`, `OPENROUTER_API_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `WEBHOOK_SECRET`, `CRON_SECRET`.
+`CRON_SECRET` is a shared variable on the production environment (Project Settings → Shared Variables). The config only references it. Create that variable before `railway config apply`.
 
-On the cron service the three references above are enough. The wake script does not send Telegram messages itself.
+On the bot: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_USER_ID`, `OPENROUTER_API_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `WEBHOOK_SECRET`, and the shared `CRON_SECRET`.
+
+On the cron service the shared secret plus `BOT_PRIVATE_DOMAIN` and `BOT_PORT` are enough. The wake script does not send Telegram messages itself.
 
 The CLI token for this repo is `RAILWAY_TOKEN` in `.env.railway`. See [docs/dev.md](dev.md).
 
@@ -58,5 +60,5 @@ News traces:
 |-------|----------------|
 | Push did not change the cron schedule or start command | Those fields live in `.railway/railway.ts`. Apply with `railway config apply` |
 | Deploy stayed `WAITING` or became `SKIPPED` | GitHub Actions on that commit. A failed `pytest` skips the deploy |
-| Brief did not arrive at 07:00 or 18:00 | Cron logs. `CRON_SECRET` matches the bot. `BOT_PRIVATE_DOMAIN` and `BOT_PORT` point at the bot |
+| Brief did not arrive at 07:00 or 18:00 | Cron logs. Both services reference the shared `CRON_SECRET`. `BOT_PRIVATE_DOMAIN` and `BOT_PORT` point at the bot |
 | Bot not responding | `TELEGRAM_USER_ID`, webhook variables, bot logs |
