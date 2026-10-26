@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from digest.content.service import DigestSection, build_digest_delivery
@@ -22,6 +23,7 @@ def deliver_scheduled_digest(*, source: str = "local") -> None:
     if not telegram_bot_token or not telegram_chat_id:
         raise RuntimeError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required.")
 
+    logging.info("scheduled brief sending (%s)", source)
     news_markup = brief_entry_keyboard()
     for section in scheduled_sections():
         delivery = build_digest_delivery(section)
@@ -32,4 +34,5 @@ def deliver_scheduled_digest(*, source: str = "local") -> None:
                 html_text=html_text,
                 reply_markup=news_markup if section == DigestSection.BRIEF else None,
             )
+    logging.info("scheduled brief sent (%s)", source)
     flush_observability()

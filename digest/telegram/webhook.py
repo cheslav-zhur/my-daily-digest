@@ -36,10 +36,12 @@ class CronDigestHandler(tornado.web.RequestHandler):
 
     async def post(self) -> None:
         if not _authorize_cron(self):
+            logging.warning("cron digest unauthorized")
             self.set_status(401)
             self.write("unauthorized")
             return
 
+        logging.info("cron digest accepted")
         loop = tornado.ioloop.IOLoop.current()
         try:
             await loop.run_in_executor(
@@ -52,6 +54,7 @@ class CronDigestHandler(tornado.web.RequestHandler):
             self.write("error")
             return
 
+        logging.info("cron digest sent")
         self.set_status(200)
         self.write("ok")
 

@@ -42,15 +42,19 @@ def main() -> None:
         raise SystemExit(f"Missing {', '.join(missing)}.")
     secret = os.environ.get("CRON_SECRET", "").strip()
     url = digest_url()
+    logging.info("waking %s", url)
 
-    response = requests.post(
-        url,
-        headers={"Authorization": f"Bearer {secret}"},
-        timeout=WAKE_TIMEOUT_SECONDS,
-    )
+    try:
+        response = requests.post(
+            url,
+            headers={"Authorization": f"Bearer {secret}"},
+            timeout=WAKE_TIMEOUT_SECONDS,
+        )
+    except requests.RequestException as exc:
+        raise SystemExit(f"digest wake failed: {exc}") from exc
     if response.status_code != 200:
         raise SystemExit(f"digest wake failed: {response.status_code} {response.text}")
-    logging.info("digest wake ok")
+    logging.info("digest wake ok %s", response.status_code)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
 from digest.content.service import DigestSection
@@ -13,7 +14,10 @@ def test_scheduled_sections_always_brief_only() -> None:
     assert scheduled_sections() == (DigestSection.BRIEF,)
 
 
-def test_deliver_scheduled_digest_attaches_news_button(monkeypatch) -> None:
+def test_deliver_scheduled_digest_attaches_news_button(
+    monkeypatch,
+    caplog,
+) -> None:
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "token")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
     send = MagicMock()
@@ -21,11 +25,14 @@ def test_deliver_scheduled_digest_attaches_news_button(monkeypatch) -> None:
     delivery.messages = ["<b>brief</b>"]
 
     with (
+        caplog.at_level(logging.INFO),
         patch("digest.scheduled.build_digest_delivery", return_value=delivery),
         patch("digest.scheduled.send_telegram_message", send),
         patch("digest.scheduled.flush_observability"),
     ):
         deliver_scheduled_digest(source="test")
+
+    assert "scheduled brief sent (test)" in caplog.text
 
     send.assert_called_once()
     kwargs = send.call_args.kwargs

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -23,13 +24,22 @@ def test_digest_url_prefers_explicit_url(monkeypatch: pytest.MonkeyPatch) -> Non
     assert digest_url() == "http://bot/cron/digest"
 
 
-def test_main_posts_bearer_token(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_posts_bearer_token(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     monkeypatch.setenv("CRON_SECRET", "s3cret")
     monkeypatch.setenv("DIGEST_URL", "http://bot/cron/digest")
     response = MagicMock(status_code=200, text="ok")
 
-    with patch("scripts.wake_digest.requests.post", return_value=response) as post:
+    with (
+        caplog.at_level(logging.INFO),
+        patch("scripts.wake_digest.requests.post", return_value=response) as post,
+    ):
         main()
+
+    assert "waking http://bot/cron/digest" in caplog.text
+    assert "digest wake ok 200" in caplog.text
 
     post.assert_called_once_with(
         "http://bot/cron/digest",
