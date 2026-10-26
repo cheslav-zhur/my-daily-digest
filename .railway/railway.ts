@@ -16,6 +16,7 @@ export default defineRailway((ctx) => {
     replicas,
     deploy: { sleepApplication: true },
     env: {
+      PORT: "8080",
       CRON_SECRET: ctx.shared.CRON_SECRET,
       LANGFUSE_PUBLIC_KEY: preserve(),
       LANGFUSE_SECRET_KEY: preserve(),

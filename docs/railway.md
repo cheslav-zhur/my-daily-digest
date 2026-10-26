@@ -18,7 +18,7 @@ Service `bot`.
 - Webhook when `WEBHOOK_URL` is set, or when `RAILWAY_PUBLIC_DOMAIN` and `WEBHOOK_SECRET` are set
 - `POST /cron/digest` with `Authorization: Bearer <CRON_SECRET>` sends the brief only. News stays on demand in the bot
 
-`RAILWAY_PUBLIC_DOMAIN`, `PORT`, and `RAILWAY_PRIVATE_DOMAIN` are set by Railway.
+`PORT` is `8080` in `.railway/railway.ts`. Railway also injects `PORT` into the bot container, but that value is not a stored variable. Until the bot has its own `PORT`, `${{bot.PORT}}` on the cron is empty and `wake_digest.py` exits with `Missing BOT_PORT.` `RAILWAY_PUBLIC_DOMAIN` and `RAILWAY_PRIVATE_DOMAIN` are set by Railway.
 
 ## Cron
 
@@ -35,7 +35,7 @@ Service `cron`. It runs `python scripts/wake_digest.py`, which `POST`s `/cron/di
 railway variable set TELEGRAM_BOT_TOKEN=... OPENROUTER_API_KEY=...
 ```
 
-`CRON_SECRET` is a shared variable on the production environment (Project Settings → Shared Variables). The config only references it. Create that variable before `railway config apply`.
+`CRON_SECRET` is a shared variable. Production already has it. A new environment needs the same variable (Project Settings → Shared Variables) before `railway config apply`. The config only references `${{shared.CRON_SECRET}}`.
 
 On the bot: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_USER_ID`, `OPENROUTER_API_KEY`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `WEBHOOK_SECRET`, and the shared `CRON_SECRET`.
 
@@ -60,5 +60,5 @@ News traces:
 |-------|----------------|
 | Push did not change the cron schedule or start command | Those fields live in `.railway/railway.ts`. Apply with `railway config apply` |
 | Deploy stayed `WAITING` or became `SKIPPED` | GitHub Actions on that commit. A failed `pytest` skips the deploy |
-| Brief did not arrive at 07:00 or 18:00 | Cron logs. Both services reference the shared `CRON_SECRET`. `BOT_PRIVATE_DOMAIN` and `BOT_PORT` point at the bot |
+| Brief did not arrive at 07:00 or 18:00 | Cron logs. Both services reference the shared `CRON_SECRET`. `BOT_PRIVATE_DOMAIN` must be set. `BOT_PORT` stays empty until the bot has a stored `PORT` |
 | Bot not responding | `TELEGRAM_USER_ID`, webhook variables, bot logs |
