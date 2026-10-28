@@ -6,10 +6,14 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import time
 
 import requests
 
 WAKE_TIMEOUT_SECONDS = 120
+WAKE_ATTEMPTS = 18
+WAKE_RETRY_DELAY_SECONDS = 10
+RETRYABLE_STATUS = frozenset({502, 503})
 
 
 def digest_url() -> str:
@@ -36,6 +40,46 @@ def _missing_config() -> list[str]:
     return missing
 
 
+def _post_digest(url: str, secret: str) -> requests.Response:
+    return requests.post(
+        url,
+        headers={"Authorization": f"Bearer {secret}"},
+        timeout=WAKE_TIMEOUT_SECONDS,
+    )
+
+
+def wake(url: str, secret: str) -> None:
+    """POST /cron/digest, retrying while the sleeping bot cold-boots."""
+    last_error = "unknown error"
+    for attempt in range(1, WAKE_ATTEMPTS + 1):
+        try:
+            response = _post_digest(url, secret)
+        except requests.RequestException as exc:
+            last_error = str(exc)
+            logging.info(
+                "wake attempt %s/%s failed: %s",
+                attempt,
+                WAKE_ATTEMPTS,
+                last_error,
+            )
+        else:
+            if response.status_code == 200:
+                logging.info("digest wake ok %s", response.status_code)
+                return
+            last_error = f"{response.status_code} {response.text}"
+            if response.status_code not in RETRYABLE_STATUS:
+                raise SystemExit(f"digest wake failed: {last_error}")
+            logging.info(
+                "wake attempt %s/%s failed: %s",
+                attempt,
+                WAKE_ATTEMPTS,
+                last_error,
+            )
+        if attempt < WAKE_ATTEMPTS:
+            time.sleep(WAKE_RETRY_DELAY_SECONDS)
+    raise SystemExit(f"digest wake failed: {last_error}")
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
     missing = _missing_config()
@@ -44,18 +88,7 @@ def main() -> None:
     secret = os.environ.get("CRON_SECRET", "").strip()
     url = digest_url()
     logging.info("waking %s", url)
-
-    try:
-        response = requests.post(
-            url,
-            headers={"Authorization": f"Bearer {secret}"},
-            timeout=WAKE_TIMEOUT_SECONDS,
-        )
-    except requests.RequestException as exc:
-        raise SystemExit(f"digest wake failed: {exc}") from exc
-    if response.status_code != 200:
-        raise SystemExit(f"digest wake failed: {response.status_code} {response.text}")
-    logging.info("digest wake ok %s", response.status_code)
+    wake(url, secret)
 
 
 if __name__ == "__main__":

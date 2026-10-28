@@ -4,6 +4,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from scripts.wake_digest import digest_url, main
 
@@ -48,16 +49,79 @@ def test_main_posts_bearer_token(
     )
 
 
+def test_main_retries_connection_refused_then_ok(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("CRON_SECRET", "s3cret")
+    monkeypatch.setenv("DIGEST_URL", "http://bot/cron/digest")
+    refused = requests.ConnectionError("Connection refused")
+    ok = MagicMock(status_code=200, text="ok")
+
+    with (
+        caplog.at_level(logging.INFO),
+        patch("scripts.wake_digest.time.sleep") as sleep,
+        patch(
+            "scripts.wake_digest.requests.post",
+            side_effect=[refused, refused, ok],
+        ) as post,
+    ):
+        main()
+
+    assert post.call_count == 3
+    assert sleep.call_count == 2
+    sleep.assert_called_with(10)
+    assert "wake attempt 1/18 failed: Connection refused" in caplog.text
+    assert "digest wake ok 200" in caplog.text
+
+
+def test_main_retries_502_then_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CRON_SECRET", "s3cret")
+    monkeypatch.setenv("DIGEST_URL", "http://bot/cron/digest")
+    bad_gateway = MagicMock(status_code=502, text="Bad Gateway")
+    ok = MagicMock(status_code=200, text="ok")
+
+    with (
+        patch("scripts.wake_digest.time.sleep"),
+        patch(
+            "scripts.wake_digest.requests.post",
+            side_effect=[bad_gateway, ok],
+        ) as post,
+    ):
+        main()
+
+    assert post.call_count == 2
+
+
 def test_main_exits_when_bot_rejects(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CRON_SECRET", "s3cret")
     monkeypatch.setenv("DIGEST_URL", "http://bot/cron/digest")
     response = MagicMock(status_code=500, text="error")
 
     with (
-        patch("scripts.wake_digest.requests.post", return_value=response),
+        patch("scripts.wake_digest.requests.post", return_value=response) as post,
         pytest.raises(SystemExit, match="digest wake failed: 500"),
     ):
         main()
+
+    post.assert_called_once()
+
+
+def test_main_exits_after_retries_exhausted(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CRON_SECRET", "s3cret")
+    monkeypatch.setenv("DIGEST_URL", "http://bot/cron/digest")
+    refused = requests.ConnectionError("Connection refused")
+
+    with (
+        patch("scripts.wake_digest.WAKE_ATTEMPTS", 3),
+        patch("scripts.wake_digest.time.sleep") as sleep,
+        patch("scripts.wake_digest.requests.post", side_effect=refused) as post,
+        pytest.raises(SystemExit, match="digest wake failed: Connection refused"),
+    ):
+        main()
+
+    assert post.call_count == 3
+    assert sleep.call_count == 2
 
 
 def test_main_exits_without_address(monkeypatch: pytest.MonkeyPatch) -> None:
